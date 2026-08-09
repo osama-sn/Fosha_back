@@ -9,17 +9,18 @@ class CouponController {
   });
 
   validateCoupon = AsyncHandler(async (req, res) => {
-    const result = await couponService.validateCoupon(req.body.code, req.body.originalPrice);
+    const targetCompanyId = req.body.companyId || req.body.company || null;
+    const result = await couponService.validateCoupon(req.body.code, req.body.originalPrice, targetCompanyId);
     res.status(200).json(new ApiResponse(200, 'COUPON_VALID', result, req.lang));
   });
 
   getAllCoupons = AsyncHandler(async (req, res) => {
-    const coupons = await couponService.getAllCoupons();
+    const coupons = await couponService.getAllCoupons(req.user);
     res.status(200).json(new ApiResponse(200, 'COUPONS_FETCHED', coupons, req.lang));
   });
 
   deleteCoupon = AsyncHandler(async (req, res) => {
-    await couponService.deleteCoupon(req.params.id);
+    await couponService.deleteCoupon(req.params.id, req.user);
     res.status(200).json(new ApiResponse(200, 'COUPON_DELETED', {}, req.lang));
   });
 }

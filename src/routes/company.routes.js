@@ -1,11 +1,11 @@
 const express = require('express');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect, optionalProtect, authorize } = require('../middlewares/authMiddleware');
 const companyController = require('../controllers/company.controller');
 
 const router = express.Router();
 
 // Public routes
-router.get('/', companyController.getCompanies);
+router.get('/', optionalProtect, companyController.getCompanies);
 router.get('/:id', companyController.getCompanyById);
 router.get('/:id/reviews', companyController.getCompanyReviews);
 

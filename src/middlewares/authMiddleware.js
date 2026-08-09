@@ -65,8 +65,33 @@ const requireCompany = AsyncHandler(async (req, res, next) => {
   throw new ApiError(403, 'FORBIDDEN');
 });
 
+const optionalProtect = AsyncHandler(async (req, res, next) => {
+  let token;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = verifyAccessToken(token);
+    const user = await User.findById(decoded.id).populate('company');
+    if (user) {
+      req.user = user;
+    }
+  } catch (error) {
+    // If token invalid/expired, continue without user attached
+  }
+
+  next();
+});
+
 module.exports = {
   protect,
+  optionalProtect,
   authorize,
   requireCompany,
 };

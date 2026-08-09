@@ -61,6 +61,11 @@ const userSchema = new mongoose.Schema(
         type: String,
       },
     ],
+    governorate: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     isProtected: {
       type: Boolean,
       default: true,

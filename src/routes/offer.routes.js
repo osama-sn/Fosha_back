@@ -14,10 +14,10 @@ const router = express.Router();
 router.get('/', offerController.getAllOffers);
 router.get('/:id', offerController.getOfferById);
 
-// Admin Routes
-router.get('/admin/all', protect, authorize('admin'), offerController.getAllOffers);
-router.post('/', protect, authorize('admin'), uploadOfferImage, createOfferValidator, validate, offerController.createOffer);
-router.put('/:id', protect, authorize('admin'), uploadOfferImage, updateOfferValidator, validate, offerController.updateOffer);
-router.delete('/:id', protect, authorize('admin'), offerController.deleteOffer);
+// Admin & Company Routes
+router.get('/admin/all', protect, authorize('super_admin', 'admin', 'company_admin'), offerController.getAllOffers);
+router.post('/', protect, authorize('super_admin', 'admin', 'company_admin'), uploadOfferImage, createOfferValidator, validate, offerController.createOffer);
+router.put('/:id', protect, authorize('super_admin', 'admin', 'company_admin'), uploadOfferImage, updateOfferValidator, validate, offerController.updateOffer);
+router.delete('/:id', protect, authorize('super_admin', 'admin', 'company_admin'), offerController.deleteOffer);
 
 module.exports = router;

@@ -64,7 +64,7 @@ class BookingService {
     // Apply Coupon Discount if couponCode provided
     if (couponCode) {
       const couponService = require('./coupon.service');
-      const couponResult = await couponService.validateCoupon(couponCode, originalPrice);
+      const couponResult = await couponService.validateCoupon(couponCode, originalPrice, companyId);
       totalPrice = couponResult.finalPrice;
       await couponResult.coupon.updateOne({ $inc: { usedCount: 1 } });
     }

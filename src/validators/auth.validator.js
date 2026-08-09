@@ -11,6 +11,7 @@ const registerValidator = [
     }
     return true;
   }),
+  body('governorate').optional().trim(),
 ];
 
 const loginValidator = [
@@ -50,6 +51,7 @@ const changePasswordValidator = [
 const updateProfileValidator = [
   body('fullName').optional().trim().notEmpty().withMessage('VAL_FULL_NAME_REQUIRED'),
   body('phone').optional().trim().notEmpty().withMessage('VAL_PHONE_REQUIRED'),
+  body('governorate').optional().trim(),
 ];
 
 const refreshTokenValidator = [body('refreshToken').trim().notEmpty().withMessage('VAL_REFRESH_TOKEN_REQUIRED')];

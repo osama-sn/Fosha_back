@@ -16,6 +16,7 @@ class CompanyService {
       contactPhone,
       contactEmail,
       address,
+      governorate,
       commissionType,
       commissionValue,
       monthlySubscriptionFee,
@@ -54,6 +55,7 @@ class CompanyService {
       contactPhone,
       contactEmail,
       address,
+      governorate: governorate || '',
       owner: companyAdminUser._id,
       commissionType: commissionType || 'percentage',
       commissionValue: commissionValue !== undefined ? commissionValue : 10,
@@ -86,6 +88,8 @@ class CompanyService {
       page = 1,
       limit = 10,
       search = '',
+      governorate = '',
+      minRating,
       status = 'active',
       isFeatured,
       sortBy = 'featured',
@@ -98,7 +102,25 @@ class CompanyService {
     }
 
     if (search) {
-      filter.name = { $regex: search, $options: 'i' };
+      const searchRegex = new RegExp(search, 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { description: searchRegex },
+        { address: searchRegex },
+        { governorate: searchRegex },
+      ];
+    }
+
+    if (governorate) {
+      const govRegex = new RegExp(governorate, 'i');
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [{ governorate: govRegex }, { address: govRegex }],
+      });
+    }
+
+    if (minRating) {
+      filter.averageRating = { $gte: Number(minRating) };
     }
 
     if (isFeatured !== undefined) {
@@ -127,8 +149,34 @@ class CompanyService {
       Company.countDocuments(filter),
     ]);
 
+    const Trip = require('../models/trip.model');
+    const Booking = require('../models/booking.model');
+
+    const companiesWithStats = await Promise.all(
+      companies.map(async (comp) => {
+        const compObj = comp.toObject();
+        const activeTripsCount = await Trip.countDocuments({
+          company: comp._id,
+          status: 'published',
+          isDeleted: false,
+        });
+        const totalTripsCount = await Trip.countDocuments({
+          company: comp._id,
+          isDeleted: false,
+        });
+        const salesAgg = await Booking.aggregate([
+          { $match: { company: comp._id, status: 'approved' } },
+          { $group: { _id: null, totalSales: { $sum: '$totalPrice' } } },
+        ]);
+        compObj.activeTripsCount = activeTripsCount;
+        compObj.totalTripsCount = totalTripsCount;
+        compObj.totalSales = salesAgg.length > 0 ? salesAgg[0].totalSales : 0;
+        return compObj;
+      })
+    );
+
     return {
-      companies,
+      companies: companiesWithStats,
       pagination: {
         total,
         page: Number(page),
@@ -174,6 +222,7 @@ class CompanyService {
       'contactPhone',
       'contactEmail',
       'address',
+      'governorate',
     ];
 
     // Super Admin additional updates
@@ -208,9 +257,6 @@ class CompanyService {
     const company = await Company.findById(id);
     if (!company) {
       throw new ApiError(404, 'COMPANY_NOT_FOUND');
-    }
-    if (company.isProtected) {
-      throw new ApiError(400, 'PROTECTED_COMPANY_CANNOT_BE_DELETED');
     }
 
     company.isDeleted = true;

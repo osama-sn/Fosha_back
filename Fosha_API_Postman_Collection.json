@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "fosha-api-collection-v2",
-    "name": "Fosha Travel API (فسحة) - Full Multi-Tenant Collection",
-    "description": "مجموعة بوست مان الكاملة والشاملة لجميع APIs منصة فسحة (Fosha). تشمل الدخول، التسجيل، السوبر أدمن، الشركات، رحلات، حجوزات، إحصائيات الداشبورد، الخصومات، المفضلة، الإشعارات ودعم اللغة العربية والإنجليزي.",
+    "name": "Fosha Travel API (فسحة) - Full Multi-Tenant & Home Collection",
+    "description": "مجموعة بوست مان الكاملة والشاملة منصة فسحة (Fosha). تشمل الهوم بيج المجمعة، الدخول، التسجيل، السوبر أدمن، المحافظات، تصفية الفئات، الشركات، رحلات وتفاصيلها وتقييماتها، حجوزات، إحصائيات الداشبورد، الخصومات، المفضلة والإشعارات.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -48,6 +48,39 @@
     ]
   },
   "item": [
+    {
+      "name": "🏠 0. Home Page (بيانات الهوم بيج المجمعة والبحث السريع)",
+      "item": [
+        {
+          "name": "0.1 Get Home Page Data (جلب بيانات الصفحة الرئيسية الكاملة بطلب واحد)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "{{lang}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/home?governorate=القاهرة",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "home"
+              ],
+              "query": [
+                {
+                  "key": "governorate",
+                  "value": "القاهرة",
+                  "description": "اسم المحافظة (في حالة الزائر أو لتغيير المحافظة)"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "🔐 1. Authentication (الحسابات والتسجيل)",
       "item": [
@@ -132,7 +165,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"أحمد محمود\",\n  \"email\": \"ahmed@example.com\",\n  \"phone\": \"+201012345678\",\n  \"password\": \"Password123!\"\n}"
+              "raw": "{\n  \"fullName\": \"أحمد محمود\",\n  \"email\": \"ahmed@example.com\",\n  \"phone\": \"+201012345678\",\n  \"password\": \"Password123!\",\n  \"governorate\": \"الإسكندرية\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -363,7 +396,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"أحمد محمود علي\",\n  \"phone\": \"+201012345678\"\n}"
+              "raw": "{\n  \"fullName\": \"أحمد محمود علي\",\n  \"phone\": \"+201012345678\",\n  \"governorate\": \"القاهرة\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/profile",
@@ -448,7 +481,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/companies?page=1&limit=10&status=active&sortBy=featured&lang={{lang}}",
+              "raw": "{{baseUrl}}/companies?page=1&limit=10&status=active&search=النيل&governorate=القاهرة&minRating=4&sortBy=featured&lang={{lang}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -467,6 +500,18 @@
                 {
                   "key": "status",
                   "value": "active"
+                },
+                {
+                  "key": "search",
+                  "value": "النيل"
+                },
+                {
+                  "key": "governorate",
+                  "value": "القاهرة"
+                },
+                {
+                  "key": "minRating",
+                  "value": "4"
                 },
                 {
                   "key": "sortBy",
@@ -535,7 +580,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"شركة النيل للسياحة والرحلات\",\n  \"description\": \"شركة متخصصة في رحلات النيل وسيناء والغردقة\",\n  \"contactPhone\": \"+201022334455\",\n  \"contactEmail\": \"info@niletravel.com\",\n  \"address\": \"القاهرة - مدينة نصر\",\n  \"commissionType\": \"percentage\",\n  \"commissionValue\": 10,\n  \"monthlySubscriptionFee\": 500,\n  \"isFeatured\": true,\n  \"adminFullName\": \"أدمن شركة النيل\",\n  \"adminEmail\": \"admin@niletravel.com\",\n  \"adminPhone\": \"+201099887766\",\n  \"adminPassword\": \"CompanyAdmin123!\"\n}"
+              "raw": "{\n  \"name\": \"شركة النيل للسياحة والرحلات\",\n  \"description\": \"شركة متخصصة في رحلات النيل وسيناء والغردقة\",\n  \"contactPhone\": \"+201022334455\",\n  \"contactEmail\": \"info@niletravel.com\",\n  \"address\": \"القاهرة - مدينة نصر\",\n  \"commissionType\": \"percentage\",\n  \"commissionValue\": 10,\n  \"monthlySubscriptionFee\": 500,\n  \"isFeatured\": true,\n  \"adminFullName\": \"أدمن شركة النيل\",\n  \"adminEmail\": \"admin@niletravel.com\",\n  \"adminPhone\": \"+201099887766\",\n  \"adminPassword\": \"CompanyAdmin123!\",\n  \"governorate\": \"القاهرة\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/companies",
@@ -564,7 +609,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"commissionType\": \"percentage\",\n  \"commissionValue\": 12,\n  \"monthlySubscriptionFee\": 600,\n  \"isFeatured\": true,\n  \"status\": \"active\"\n}"
+              "raw": "{\n  \"commissionType\": \"percentage\",\n  \"commissionValue\": 12,\n  \"monthlySubscriptionFee\": 600,\n  \"isFeatured\": true,\n  \"status\": \"active\",\n  \"governorate\": \"الإسكندرية\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/companies/{{companyId}}",
@@ -663,7 +708,7 @@
       "name": "🌴 3. Trips (إدارة الرحلات والبرامج)",
       "item": [
         {
-          "name": "3.1 Get All Trips (عرض جميع الرحلات المتاحة)",
+          "name": "3.1 Get All Trips (تصفح الرحلات والبحث المتقدم بكل التفاصيل والفلترة)",
           "request": {
             "auth": {
               "type": "noauth"
@@ -676,7 +721,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/trips?page=1&limit=10&sort=price_asc&lang={{lang}}",
+              "raw": "{{baseUrl}}/trips?page=1&limit=10&search=دهب&origin=القاهرة&destination=دهب&minPrice=500&maxPrice=5000&minRating=4&category=sea&governorate=القاهرة&myGovernorateOnly=false&sort=price_asc&lang={{lang}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -691,6 +736,42 @@
                 {
                   "key": "limit",
                   "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "دهب"
+                },
+                {
+                  "key": "origin",
+                  "value": "القاهرة"
+                },
+                {
+                  "key": "destination",
+                  "value": "دهب"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "500"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "5000"
+                },
+                {
+                  "key": "minRating",
+                  "value": "4"
+                },
+                {
+                  "key": "category",
+                  "value": "sea"
+                },
+                {
+                  "key": "governorate",
+                  "value": "القاهرة"
+                },
+                {
+                  "key": "myGovernorateOnly",
+                  "value": "false"
                 },
                 {
                   "key": "sort",
@@ -736,7 +817,7 @@
           }
         },
         {
-          "name": "3.3 Get Trip Details (تفاصيل رحلة)",
+          "name": "3.3 Get Trip Details (تفاصيل رحلة شاملة التقييمات والأفواج القادمة)",
           "request": {
             "auth": {
               "type": "noauth"
@@ -761,7 +842,7 @@
           }
         },
         {
-          "name": "3.4 Create New Trip (إضافة رحلة جديدة للشركة)",
+          "name": "3.4 Create New Trip (إضافة رحلة جديدة مع اختيار التصنيف ورفع الصور - multipart/form-data)",
           "event": [
             {
               "listen": "test",
@@ -780,17 +861,97 @@
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Accept-Language",
                 "value": "{{lang}}"
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"رحلة إلى دهب وشرم الشيخ\",\n  \"description\": \"رحلة 4 أيام شاملة الإقامة والأنشطة البحرية وسفاري الشروق\",\n  \"origin\": \"القاهرة\",\n  \"destination\": \"دهب\",\n  \"price\": 2500,\n  \"capacity\": 30,\n  \"startDate\": \"2026-08-15T00:00:00.000Z\",\n  \"endDate\": \"2026-08-19T00:00:00.000Z\",\n  \"status\": \"published\",\n  \"isFeatured\": true,\n  \"included\": [\"الإقامة بالإفطار\", \"الانتقالات بأوتوبيسات حديثة\", \"رحلة اليخت\"],\n  \"excluded\": [\"المشروبات الشخصية\", \"سفاري البيتش باجي\"],\n  \"days\": [\n    {\n      \"dayNumber\": 1,\n      \"title\": \"الوصول والتسكين بالفندق\",\n      \"activities\": [\n        {\n          \"time\": \"10:00 AM\",\n          \"title\": \"الوصول لدهب والتسكين\",\n          \"location\": \"فندق دهب بلازا\"\n        }\n      ]\n    }\n  ]\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "رحلة إلى دهب وشرم الشيخ",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "رحلة 4 أيام شاملة الإقامة والأنشطة البحرية وسفاري الشروق",
+                  "type": "text"
+                },
+                {
+                  "key": "origin",
+                  "value": "القاهرة",
+                  "type": "text"
+                },
+                {
+                  "key": "destination",
+                  "value": "دهب",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "2500",
+                  "type": "text"
+                },
+                {
+                  "key": "capacity",
+                  "value": "30",
+                  "type": "text"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-08-15T00:00:00.000Z",
+                  "type": "text"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-08-19T00:00:00.000Z",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "type": "text"
+                },
+                {
+                  "key": "isFeatured",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "included",
+                  "value": "[\"الإقامة بالإفطار\", \"الانتقالات بأوتوبيسات حديثة\", \"رحلة اليخت\"]",
+                  "type": "text"
+                },
+                {
+                  "key": "excluded",
+                  "value": "[\"المشروبات الشخصية\", \"سفاري البيتش باجي\"]",
+                  "type": "text"
+                },
+                {
+                  "key": "days",
+                  "value": "[{\"dayNumber\":1,\"title\":\"الوصول والتسكين بالفندق\",\"activities\":[{\"time\":\"10:00 AM\",\"title\":\"الوصول لدهب والتسكين\",\"location\":\"فندق دهب بلازا\"}]}]",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "sea",
+                  "type": "text",
+                  "description": "معرف التصنيف ID أو الـ slug (مثال: sea, safari, cultural)"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": "",
+                  "description": "اختر صورة غلاف الرحلة (coverImage)"
+                },
+                {
+                  "key": "gallery",
+                  "type": "file",
+                  "src": [],
+                  "description": "اختر صور المعرض (gallery)"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/trips",
@@ -804,22 +965,47 @@
           }
         },
         {
-          "name": "3.5 Update Trip (تعديل رحلة)",
+          "name": "3.5 Update Trip (تعديل بيانات والتصنيف وصور الرحلة)",
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
               {
                 "key": "Accept-Language",
                 "value": "{{lang}}"
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"price\": 2400,\n  \"isFeatured\": true\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "price",
+                  "value": "2400",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "safari",
+                  "type": "text",
+                  "description": "تحديث تصنيف الرحلة (اختياري)"
+                },
+                {
+                  "key": "isFeatured",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": "",
+                  "description": "رفع صورة غلاف جديدة (coverImage - اختياري)"
+                },
+                {
+                  "key": "gallery",
+                  "type": "file",
+                  "src": [],
+                  "description": "إضافة صور جديدة للمعرض (gallery - اختياري)"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/trips/{{tripId}}",
@@ -1143,6 +1329,82 @@
               "path": [
                 "admin",
                 "cleanup-demo-data"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.3 Get Monthly Financial Report (تقرير الإيرادات وأرباح الاشتراكات والعمولات الشهرية)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "{{lang}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/monthly-reports?month=7&year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "monthly-reports"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "7",
+                  "description": "رقم الشهر (1 - 12)"
+                },
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "السنة (مثال: 2026)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.4 Get All Companies Monthly Stats (إحصائيات الشركات الشهرية - رحلاتها، مبيعاتها، وصافيها)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "{{lang}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/company-monthly-stats?month=7&year=2026&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "company-monthly-stats"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "7",
+                  "description": "رقم الشهر (1 - 12)"
+                },
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "description": "السنة (مثال: 2026)"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             }
           }

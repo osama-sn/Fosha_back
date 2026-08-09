@@ -75,6 +75,43 @@ class TripService {
   }
 
   /**
+   * Resolve category ObjectId from ID, slug, or name
+   */
+  async _resolveCategory(categoryInput) {
+    const Category = require('../models/category.model');
+
+    if (categoryInput) {
+      if (mongoose.Types.ObjectId.isValid(categoryInput)) {
+        const cat = await Category.findById(categoryInput);
+        if (cat) return cat._id;
+      }
+
+      const catStr = categoryInput.toString().trim();
+      const cat = await Category.findOne({
+        $or: [
+          { slug: catStr.toLowerCase() },
+          { nameAr: catStr },
+          { nameEn: new RegExp(catStr, 'i') },
+        ],
+      });
+      if (cat) return cat._id;
+    }
+
+    // Fallback to first available category
+    const defaultCat = await Category.findOne({ isActive: true });
+    if (defaultCat) return defaultCat._id;
+
+    // Create a default category if none exists
+    const createdCat = await Category.create({
+      nameEn: 'General Trips',
+      nameAr: 'رحلات عامة',
+      slug: 'general',
+      isProtected: true,
+    });
+    return createdCat._id;
+  }
+
+  /**
    * Resolve company ID for trip creation
    */
   async _resolveCompanyId(data, creatorUser) {
@@ -125,8 +162,9 @@ class TripService {
       featuredUntil,
     } = data;
 
-    // Resolve target company
+    // Resolve target company and category
     const companyId = await this._resolveCompanyId(data, creatorUser);
+    const categoryId = await this._resolveCategory(category);
 
     // Parse array fields if passed as JSON string in multipart/form-data
     if (typeof included === 'string') {
@@ -168,7 +206,7 @@ class TripService {
       included: Array.isArray(included) ? included : [],
       excluded: Array.isArray(excluded) ? excluded : [],
       cancelPolicy: cancelPolicy || '',
-      category: category || null,
+      category: categoryId,
       company: companyId,
       isFeatured: isFeatured === true || isFeatured === 'true',
       featuredUntil: featuredUntil || null,
@@ -179,6 +217,9 @@ class TripService {
     return trip;
   }
 
+  /**
+   * Get all trips with pagination, search, filter, sort
+   */
   /**
    * Get all trips with pagination, search, filter, sort
    */
@@ -258,6 +299,46 @@ class TripService {
       }
     }
 
+    // Filter by price range
+    if (query.minPrice || query.maxPrice) {
+      filter.price = {};
+      if (query.minPrice) filter.price.$gte = Number(query.minPrice);
+      if (query.maxPrice) filter.price.$lte = Number(query.maxPrice);
+    }
+
+    // Filter by date range
+    if (query.minDate || query.startDate) {
+      const sDate = query.minDate || query.startDate;
+      filter.startDate = { ...(filter.startDate || {}), $gte: new Date(sDate) };
+    }
+    if (query.maxDate || query.endDate) {
+      const eDate = query.maxDate || query.endDate;
+      filter.startDate = { ...(filter.startDate || {}), $lte: new Date(eDate) };
+    }
+
+    // Filter by minimum rating
+    if (query.minRating) {
+      filter.averageRating = { $gte: Number(query.minRating) };
+    }
+
+    // Governorate filtering (user's governorate or query governorate)
+    const targetGovernorate = query.governorate || (query.myGovernorateOnly === 'true' && user ? user.governorate : null);
+    if (targetGovernorate) {
+      const govRegex = new RegExp(targetGovernorate, 'i');
+      const matchingCompanyIds = await Company.find({
+        $or: [{ governorate: govRegex }, { address: govRegex }],
+        isDeleted: false,
+      }).distinct('_id');
+
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [
+          { origin: govRegex },
+          { company: { $in: matchingCompanyIds } },
+        ],
+      });
+    }
+
     // Sorting options (Prioritize featured trips first by default)
     let sort = { isFeatured: -1, createdAt: -1 };
     if (query.sort === 'price_asc') sort = { isFeatured: -1, price: 1 };
@@ -268,7 +349,7 @@ class TripService {
 
     const trips = await Trip.find(filter)
       .populate('category', 'nameEn nameAr slug image')
-      .populate('company', 'name logo averageRating reviewsCount isFeatured')
+      .populate('company', 'name logo averageRating reviewsCount isFeatured governorate address')
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -291,7 +372,7 @@ class TripService {
       company: { $in: activeCompanyIds },
     })
       .populate('category', 'nameEn nameAr slug image')
-      .populate('company', 'name logo averageRating reviewsCount isFeatured')
+      .populate('company', 'name logo averageRating reviewsCount isFeatured governorate address')
       .sort({ createdAt: -1 })
       .limit(Number(limit));
 
@@ -299,7 +380,7 @@ class TripService {
   }
 
   /**
-   * Get single trip by ID
+   * Get single trip by ID (Includes full details, reviews list, and upcoming trip schedules)
    */
   async getTripById(tripId, user = null) {
     const filter = { _id: tripId, isDeleted: false };
@@ -314,13 +395,40 @@ class TripService {
 
     const trip = await Trip.findOne(filter)
       .populate('category', 'nameEn nameAr slug image')
-      .populate('company', 'name description logo coverImage contactPhone contactEmail averageRating reviewsCount isFeatured');
+      .populate('company', 'name description logo coverImage contactPhone contactEmail averageRating reviewsCount isFeatured governorate address');
 
     if (!trip) {
       throw new ApiError(404, 'TRIP_NOT_FOUND');
     }
 
-    return trip;
+    // Fetch trip reviews
+    const Review = require('../models/review.model');
+    const reviews = await Review.find({ trip: trip._id })
+      .populate('user', 'fullName profileImage')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Fetch upcoming/current active trip schedules for same destination or same company
+    const upcomingSchedules = await Trip.find({
+      _id: { $ne: trip._id },
+      status: 'published',
+      isDeleted: false,
+      $or: [
+        { destination: new RegExp(trip.destination, 'i') },
+        { company: trip.company._id || trip.company },
+      ],
+      startDate: { $gte: new Date() },
+    })
+      .select('title coverImage price startDate endDate origin destination availableSeats capacity company averageRating reviewsCount')
+      .populate('company', 'name logo')
+      .sort({ startDate: 1 })
+      .limit(5);
+
+    return {
+      trip,
+      reviews,
+      upcomingSchedules,
+    };
   }
 
   /**
@@ -367,6 +475,10 @@ class TripService {
       try { data.excluded = JSON.parse(data.excluded); } catch (e) {}
     }
 
+    if (data.category) {
+      data.category = await this._resolveCategory(data.category);
+    }
+
     // Handle capacity update vs availableSeats
     if (data.capacity !== undefined) {
       const newCapacity = Number(data.capacity);
@@ -397,10 +509,6 @@ class TripService {
       if (trip.company.toString() !== userCompanyId) {
         throw new ApiError(403, 'FORBIDDEN_NOT_TRIP_OWNER');
       }
-    }
-
-    if (trip.isProtected) {
-      throw new ApiError(400, 'PROTECTED_TRIP_CANNOT_BE_DELETED');
     }
 
     trip.isDeleted = true;

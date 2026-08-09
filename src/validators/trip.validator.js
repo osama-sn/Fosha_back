@@ -9,6 +9,7 @@ const createTripValidator = [
   body('capacity').isInt({ min: 1 }).withMessage('VAL_TRIP_CAPACITY_INVALID'),
   body('startDate').notEmpty().withMessage('VAL_TRIP_START_DATE_REQUIRED').isISO8601(),
   body('endDate').notEmpty().withMessage('VAL_TRIP_END_DATE_REQUIRED').isISO8601(),
+  body('category').optional().trim(),
 ];
 
 const updateTripValidator = [
@@ -16,6 +17,7 @@ const updateTripValidator = [
   body('description').optional().trim().notEmpty().withMessage('VAL_TRIP_DESCRIPTION_REQUIRED'),
   body('price').optional().isFloat({ min: 0 }).withMessage('VAL_TRIP_PRICE_INVALID'),
   body('capacity').optional().isInt({ min: 1 }).withMessage('VAL_TRIP_CAPACITY_INVALID'),
+  body('category').optional().trim(),
 ];
 
 const republishTripValidator = [

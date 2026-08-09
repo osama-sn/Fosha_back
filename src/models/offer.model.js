@@ -29,6 +29,16 @@ const offerSchema = new mongoose.Schema(
       ref: 'Trip',
       default: null,
     },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Company',
+      default: null,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     discountPercentage: {
       type: Number,
       min: 0,

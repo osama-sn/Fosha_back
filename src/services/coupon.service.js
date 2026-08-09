@@ -3,7 +3,7 @@ const ApiError = require('../utils/ApiError');
 
 class CouponService {
   /**
-   * Create new coupon (Admin)
+   * Create new coupon (Admin / Company Admin)
    */
   async createCoupon(data, creatorUser = null) {
     const { code, discountPercentage, maxDiscountAmount, minTripPrice, validUntil, usageLimit } = data;
@@ -14,7 +14,17 @@ class CouponService {
       throw new ApiError(400, 'COUPON_ALREADY_EXISTS');
     }
 
-    const isProtected = (creatorUser && (creatorUser.isProtected || creatorUser.role === 'admin'))
+    let companyId = null;
+    if (creatorUser && creatorUser.role === 'company_admin') {
+      companyId = creatorUser.company ? (creatorUser.company._id || creatorUser.company) : null;
+      if (!companyId) {
+        throw new ApiError(403, 'COMPANY_ACCOUNT_NOT_LINKED');
+      }
+    } else if (data.company) {
+      companyId = data.company;
+    }
+
+    const isProtected = (creatorUser && (creatorUser.isProtected || ['super_admin', 'admin'].includes(creatorUser.role)))
       ? true
       : (data.isProtected === true || data.isProtected === 'true');
 
@@ -25,6 +35,8 @@ class CouponService {
       minTripPrice: Number(minTripPrice || 0),
       validUntil: new Date(validUntil),
       usageLimit: Number(usageLimit || 0),
+      company: companyId,
+      createdBy: creatorUser ? creatorUser._id : null,
       isProtected,
     });
   }
@@ -32,7 +44,7 @@ class CouponService {
   /**
    * Validate coupon code for user
    */
-  async validateCoupon(code, originalPrice = 0) {
+  async validateCoupon(code, originalPrice = 0, targetCompanyId = null) {
     if (!code) {
       throw new ApiError(400, 'COUPON_INVALID');
     }
@@ -54,6 +66,13 @@ class CouponService {
       throw new ApiError(400, 'COUPON_INVALID');
     }
 
+    if (coupon.company && targetCompanyId) {
+      const targetCompanyStr = targetCompanyId._id ? targetCompanyId._id.toString() : targetCompanyId.toString();
+      if (coupon.company.toString() !== targetCompanyStr) {
+        throw new ApiError(400, 'COUPON_NOT_VALID_FOR_COMPANY');
+      }
+    }
+
     // Calculate discount amount
     let discountAmount = (originalPrice * coupon.discountPercentage) / 100;
     if (coupon.maxDiscountAmount > 0 && discountAmount > coupon.maxDiscountAmount) {
@@ -72,20 +91,37 @@ class CouponService {
   }
 
   /**
-   * List all coupons (Admin)
+   * List all coupons (Admin / Company Admin)
    */
-  async getAllCoupons() {
-    return await Coupon.find().sort({ createdAt: -1 });
+  async getAllCoupons(user = null) {
+    let filter = {};
+    if (user && user.role === 'company_admin') {
+      const companyId = user.company ? (user.company._id || user.company) : null;
+      if (!companyId) {
+        throw new ApiError(403, 'COMPANY_ACCOUNT_NOT_LINKED');
+      }
+      filter.company = companyId;
+    }
+    return await Coupon.find(filter).populate('company', 'name logo').sort({ createdAt: -1 });
   }
 
   /**
-   * Delete coupon (Admin)
+   * Delete coupon (Admin / Company Admin)
    */
-  async deleteCoupon(couponId) {
-    const coupon = await Coupon.findByIdAndDelete(couponId);
+  async deleteCoupon(couponId, user = null) {
+    const coupon = await Coupon.findById(couponId);
     if (!coupon) {
       throw new ApiError(404, 'COUPON_NOT_FOUND');
     }
+
+    if (user && user.role === 'company_admin') {
+      const companyId = user.company ? (user.company._id || user.company) : null;
+      if (!companyId || !coupon.company || coupon.company.toString() !== companyId.toString()) {
+        throw new ApiError(403, 'FORBIDDEN');
+      }
+    }
+
+    await coupon.deleteOne();
     return true;
   }
 }

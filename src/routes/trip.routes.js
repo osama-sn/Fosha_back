@@ -1,7 +1,7 @@
 const express = require('express');
 const tripController = require('../controllers/trip.controller');
 const reviewController = require('../controllers/review.controller');
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { protect, optionalProtect, authorize } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const { uploadTripImages } = require('../middlewares/tripUploadMiddleware');
 const {
@@ -12,10 +12,10 @@ const { createReviewValidator } = require('../validators/review.validator');
 
 const router = express.Router();
 
-// Public Routes
-router.get('/', tripController.getAllTrips);
+// Public / Optional Auth Routes
+router.get('/', optionalProtect, tripController.getAllTrips);
 router.get('/featured', tripController.getFeaturedTrips);
-router.get('/:id', tripController.getTripById);
+router.get('/:id', optionalProtect, tripController.getTripById);
 
 // Review Public Route
 router.get('/:id/reviews', reviewController.getTripReviews);

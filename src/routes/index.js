@@ -10,6 +10,7 @@ const categoryRoutes = require('./category.routes');
 const couponRoutes = require('./coupon.routes');
 const offerRoutes = require('./offer.routes');
 const adminRoutes = require('./admin.routes');
+const homeRoutes = require('./home.routes');
 
 const router = express.Router();
 
@@ -17,6 +18,9 @@ const router = express.Router();
 router.get('/health', (req, res) => {
   res.status(200).json(new ApiResponse(200, 'OPERATION_SUCCESS', {}, req.lang));
 });
+
+// Home Page API
+router.use('/home', homeRoutes);
 
 // Authentication Routes
 router.use('/auth', authRoutes);

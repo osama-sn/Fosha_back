@@ -10,7 +10,7 @@ class AuthService {
    * Register a new user (Email + Phone + Password)
    */
   async register(userData, file) {
-    const { fullName, email, phone, password } = userData;
+    const { fullName, email, phone, password, governorate } = userData;
 
     // Check existing email
     const existingEmail = await User.findOne({ email });
@@ -37,6 +37,7 @@ class AuthService {
       phone,
       password,
       profileImage,
+      governorate: governorate || '',
       authProvider: 'local',
       isProtected,
     });
@@ -231,9 +232,9 @@ class AuthService {
   }
 
   /**
-   * Update Profile (FullName, Phone, ProfileImage) - Email & AuthProvider cannot be changed
+   * Update Profile (FullName, Phone, ProfileImage, Governorate) - Email & AuthProvider cannot be changed
    */
-  async updateProfile(userId, { fullName, phone }, file) {
+  async updateProfile(userId, { fullName, phone, governorate }, file) {
     const user = await User.findById(userId);
     if (!user) {
       throw new ApiError(404, 'USER_NOT_FOUND');
@@ -249,6 +250,10 @@ class AuthService {
 
     if (fullName) {
       user.fullName = fullName;
+    }
+
+    if (governorate !== undefined) {
+      user.governorate = governorate;
     }
 
     if (file) {

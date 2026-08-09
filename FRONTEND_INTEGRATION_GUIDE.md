@@ -11,6 +11,11 @@
 * **نظام الأداء (Architecture)**: Multi-Tenant Architecture (سوبر أدمن + شركات الرحلات + العملاء).
 * **نظام التشفير والتوكن**: JSON Web Token (JWT) باستخدام `Bearer Token`.
 
+### 📚 أدلة الربط المخصصة حسب كل لوحة وتطبيق (Dedicated Role Guides):
+1. 👑 **[دليل تكامل لوحة تحكم السوبر أدمن (SUPER_ADMIN_INTEGRATION_GUIDE.md)](file:///d:/programming/Back_end/Fosha_back/SUPER_ADMIN_INTEGRATION_GUIDE.md)**
+2. 🏢 **[دليل تكامل لوحة تحكم شركة السياحة (COMPANY_ADMIN_INTEGRATION_GUIDE.md)](file:///d:/programming/Back_end/Fosha_back/COMPANY_ADMIN_INTEGRATION_GUIDE.md)**
+3. 📱 **[دليل تكامل تطبيق وموقع العميل (USER_APP_INTEGRATION_GUIDE.md)](file:///d:/programming/Back_end/Fosha_back/USER_APP_INTEGRATION_GUIDE.md)**
+
 ---
 
 ## 🌐 2. الهيدرز المطلوبة وتعدد اللغات (Headers & i18n Localization)
@@ -98,7 +103,8 @@ Content-Type: application/json
   "email": "ahmed@example.com",
   "phone": "+201012345678",
   "password": "Password123!",
-  "confirmPassword": "Password123!"
+  "confirmPassword": "Password123!",
+  "governorate": "الإسكندرية"
 }
 ```
 
@@ -110,7 +116,7 @@ Content-Type: application/json
   "password": "Password123!"
 }
 ```
-- **Response Data**: يحتوي على `accessToken` و `refreshToken` وبيانات المستخدم.
+- **Response Data**: يحتوي على `accessToken` و `refreshToken` وبيانات المستخدم (شاملة المحافظة `governorate`).
 
 #### 3. تسجيل الدخول بجوجل (`POST /auth/google`)
 > ⚠️ **تنبيه:** يقتصر على الحسابات المسجلة سابقاً بالنظام فقط.
@@ -129,7 +135,8 @@ Content-Type: application/json
 ```json
 {
   "fullName": "أحمد محمود علي",
-  "phone": "+201012345678"
+  "phone": "+201012345678",
+  "governorate": "القاهرة"
 }
 ```
 
@@ -145,15 +152,33 @@ Content-Type: application/json
 
 ---
 
+### 🏠 الهوم بيج والصفحة الرئيسية (Home Page API)
+
+#### 1. API صفحة الهوم الشامل المجمع (`GET /home`)
+- **Headers**: `Authorization: Bearer <ACCESS_TOKEN>` *(اختياري)*
+- **Query Params**:
+  - `governorate`: اسم المحافظة (في حال لم يكن المستخدم مسجلاً الدخول، مثلاً `?governorate=القاهرة`)
+- **وصف الاستجابة**: يرجع كائن متكامل لصفحة الهوم بيج يحتوي على:
+  - `userGovernorate`: المحافظة المستهدفة للمستخدم
+  - `featuredTrips`: الرحلات المميزة
+  - `governorateTrips`: الرحلات المنطلقة من أو المتوفرة في محافظة المستخدم
+  - `featuredCompanies`: الشركات المميزة
+  - `categories`: قائمة التصنيفات
+  - `offers`: البانرات والعروض الترويجية النشطة
+
+---
+
 ### 🏢 ثانياً: شركات الرحلات والسياحة (Companies)
 
-#### 1. عرض قائمة الشركات (`GET /companies`)
+#### 1. عرض قائمة الشركات والبحث فيها (`GET /companies`)
 - **Query Params**:
   - `page`: رقم الصفحة (افتراضي 1)
   - `limit`: عدد العناصر (افتراضي 10)
   - `status`: حالة الشركة (`active`)
   - `sortBy`: الترتيب (`featured` لظهور المميزة أولاً، `rating` للتقييم، `newest`)
-  - `search`: بحث بالاسم
+  - `search`: بحث بالاسم أو الوصف أو العنوان أو المحافظة
+  - `governorate`: تصفية الشركات حسب المحافظة (مثلاً `?governorate=الإسكندرية`)
+  - `minRating`: تصفية حسب الحد الأدنى للتقييم (مثلاً `?minRating=4`)
 
 #### 2. جلب تفاصيل شركة برقمها (`GET /companies/:id`)
 
@@ -166,6 +191,7 @@ Content-Type: application/json
   "contactPhone": "+201022334455",
   "contactEmail": "info@niletravel.com",
   "address": "القاهرة - مدينة نصر",
+  "governorate": "القاهرة",
   "commissionType": "percentage",
   "commissionValue": 10,
   "monthlySubscriptionFee": 500,
@@ -181,6 +207,7 @@ Content-Type: application/json
 - **Body**:
 ```json
 {
+  "governorate": "الإسكندرية",
   "commissionType": "percentage",
   "commissionValue": 12,
   "monthlySubscriptionFee": 600,
@@ -202,30 +229,99 @@ Content-Type: application/json
 
 ---
 
-### 🌴 ثالثاً: الرحلات (Trips)
+### 🌴 ثالثاً: الرحلات والبحث المتقدم (Trips)
 
-#### 1. تصفح الرحلات المتاحة (`GET /trips`)
+#### 1. تصفح الرحلات والبحث المتقدم بكل التفاصيل (`GET /trips`)
+- **Headers**: `Authorization: Bearer <ACCESS_TOKEN>` *(اختياري لفلترة محافظة المستخدم تلقائياً)*
 - **Query Params**:
   - `page`: 1
   - `limit`: 10
-  - `search`: بحث بالعنوان أو الوجهة
-  - `city`: تصفية حسب المدينة
+  - `search`: بحث عام بالكلمة المفتاحية (عنوان الرحلة، الوصف، نقطة الانطلاق، الوجهة)
+  - `city` / `origin`: تصفية حسب نقطة الانطلاق أو المحافظة
+  - `destination`: تصفية حسب وجهة الرحلة (مثل: شرم الشيخ، الغردقة، دهب)
+  - `minPrice` & `maxPrice`: نطاق سعر الرحلة (مثلاً `?minPrice=500&maxPrice=3000`)
+  - `minDate` / `startDate` & `maxDate` / `endDate`: نطاق تواريخ الرحلة (`YYYY-MM-DD`)
+  - `minRating`: تصفية حسب الحد الأدنى لتقييم الرحلة (`?minRating=4`)
   - `category`: ID التصنيف أو الـ slug
+  - `governorate`: تصفية الرحلات المنطلقة من المحافظة أو الشركات المسجلة فيها
+  - `myGovernorateOnly`: تصفية الرحلات الخاصة بمحافظة المستخدم المسجل دخول فقط (`true`)
   - `sort`: `price_asc`, `price_desc`, `date_asc`, `date_desc`, `rating_desc`
 
 #### 2. عرض الرحلات المميزة (`GET /trips/featured`)
 - يرجع قائمة الرحلات المميزة (`isFeatured: true`) الخاصة بالشركات المشتركة في باقة الظهور.
 
-#### 3. جلب تفاصيل رحلة (`GET /trips/:id`)
+#### 3. جلب تفاصيل رحلة كاملة لصفحة الرحلة (`GET /trips/:id`)
+- **الاستجابة الهيكلية**:
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "code": "TRIP_FETCHED",
+  "message": "تمت العملية بنجاح.",
+  "data": {
+    "trip": {
+      "_id": "66a0123456789",
+      "title": "رحلة دهب وسفاري ووادي الوشواشي",
+      "description": "تفاصيل الرحلة الكاملة...",
+      "origin": "القاهرة",
+      "destination": "دهب",
+      "price": 2500,
+      "capacity": 30,
+      "availableSeats": 12,
+      "startDate": "2026-08-15T00:00:00.000Z",
+      "endDate": "2026-08-19T00:00:00.000Z",
+      "averageRating": 4.8,
+      "reviewsCount": 15,
+      "company": {
+        "name": "شركة النيل للسياحة",
+        "logo": "/uploads/logos/nile.png",
+        "contactPhone": "+201012345678"
+      },
+      "category": {
+        "_id": "66b...",
+        "nameAr": "رحلات بحرية",
+        "nameEn": "Sea Trips",
+        "slug": "sea",
+        "image": "/uploads/categories/sea.jpg"
+      },
+      "days": []
+    },
+    "reviews": [
+      {
+        "_id": "77b...",
+        "rating": 5,
+        "comment": "رحلة خيالية والتنظيم رائع جداً",
+        "user": {
+          "fullName": "محمد أحمد",
+          "profileImage": "/uploads/profiles/user.jpg"
+        },
+        "createdAt": "2026-07-20T10:00:00.000Z"
+      }
+    ],
+    "upcomingSchedules": [
+      {
+        "_id": "88c...",
+        "title": "رحلة دهب الأفواج القادمة",
+        "startDate": "2026-09-01T00:00:00.000Z",
+        "price": 2600,
+        "availableSeats": 20
+      }
+    ]
+  }
+}
+```
 
 #### 4. إضافة رحلة جديدة (`POST /trips`) — *Company Admin / Super Admin*
-- **Body**:
+- **Content-Type**: `multipart/form-data` *(أو `application/json`)*
+- **ملاحظة التصنيف (`category`)**: يقبل الـ Category ID، أو الـ Slug (مثل: `sea`, `safari`, `cultural`), أو الاسم بالعربي (مثل: `"رحلات بحرية"`).
+- **Body / FormData**:
 ```json
 {
   "title": "رحلة إلى دهب وشرم الشيخ",
   "description": "رحلة 4 أيام شاملة الإقامة والأنشطة البحرية وسفاري الشروق",
   "origin": "القاهرة",
   "destination": "دهب",
+  "category": "sea",
   "price": 2500,
   "capacity": 30,
   "startDate": "2026-08-15T00:00:00.000Z",
@@ -234,6 +330,8 @@ Content-Type: application/json
   "isFeatured": true,
   "included": ["الإقامة بالإفطار", "الانتقالات"],
   "excluded": ["المشروبات الشخصية"],
+  "coverImage": "File (صورة الغلاف)",
+  "gallery": "Files (صور المعرض)",
   "days": [
     {
       "dayNumber": 1,
@@ -293,7 +391,26 @@ Content-Type: application/json
   - إجمالي رسوم الاشتراكات الشهرية (`totalMonthlySubscriptions`).
   - قائمة أعلى 5 شركات مبيعاً وأعلى 5 رحلات إقبالاً.
 
-#### 2. داشبورد أرباح أدمن الشركة (`GET /admin/company-stats`) — *Company Admin Only*
+#### 2. التقرير المالي والإيرادات الشهرية الشاملة (`GET /admin/monthly-reports`) — *Super Admin Only*
+- **Query Params**: `month` (1-12) & `year` (مثل: `?month=7&year=2026`)
+- **وصف الاستجابة**: يرجع تفاصيل الإيرادات الشهرية المحققة:
+  - `subscriptionsRevenue`: إجمالي رسوم الاشتراكات الشهرية للشركات النشطة هذا الشهر.
+  - `bookingCommissionsRevenue`: إجمالي عمولات الحجوزات المقبولة هذا الشهر.
+  - `totalPlatformRevenue`: مجموع أرباح المنصة بالكامل لهذا الشهر (`subscriptionsRevenue + bookingCommissionsRevenue`).
+  - `totalGrossSales`: إجمالي قيمة مبيعات الحجوزات المقبولة هذا الشهر.
+  - `totalCompanyNetPayouts`: إجمالي صافي المبالغ المستحقة للشركات هذا الشهر.
+
+#### 3. إحصائيات الشركات الشهرية التفصيلية (`GET /admin/company-monthly-stats`) — *Super Admin Only*
+- **Query Params**: `month` (1-12) & `year` (مثل: `?month=7&year=2026`), `page`, `limit`, `search`
+- **وصف الاستجابة**: يرجع قائمة الشركات شاملاً لكل شركة إحصائيات الشهر المني المحدد:
+  - `monthlyTripsCount`: عدد الرحلات المنشورة التي أنشأتها الشركة هذا الشهر.
+  - `monthlyBookingsCount`: عدد الحجوزات المقبولة للشركة هذا الشهر.
+  - `monthlySeatsBooked`: عدد المقاعد المحجوزة هذا الشهر.
+  - `monthlyGrossSales`: إجمالي مبيعات الشركة هذا الشهر.
+  - `monthlyAdminCommission`: عمولة المنصة المستقطعة هذا الشهر.
+  - `monthlyCompanyNet`: الصافي المالي المستلم للشركة هذا الشهر ("خد كام").
+
+#### 4. داشبورد أرباح أدمن الشركة (`GET /admin/company-stats`) — *Company Admin Only*
 - **ترجع**:
   - عدد رحلات وحجوزات الشركة وحالاتها.
   - إجمالي المبيعات، الصافي المتبقي للشركة بعد الخصم (`totalCompanyNetRevenue`) والعمولات المدفوعة.

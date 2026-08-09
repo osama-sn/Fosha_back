@@ -11,9 +11,6 @@ connectDB()
     // Run initial data migration & default company setup
     await migrationService.ensureDefaultCompanyAndMigrate();
 
-    // Initialize hourly demo auto-cleanup cron job
-    initCronJobs();
-
     app.listen(PORT, () => {
       console.log(`⚙️  Server is running on port ${PORT}`);
     });

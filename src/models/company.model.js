@@ -36,6 +36,12 @@ const companySchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    governorate: {
+      type: String,
+      default: '',
+      trim: true,
+      index: true,
+    },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

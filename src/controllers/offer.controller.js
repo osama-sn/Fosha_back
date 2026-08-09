@@ -10,8 +10,7 @@ class OfferController {
   });
 
   getAllOffers = AsyncHandler(async (req, res) => {
-    const isAdmin = req.user && req.user.role === 'admin';
-    const offers = await offerService.getAllOffers(req.query, isAdmin);
+    const offers = await offerService.getAllOffers(req.query, req.user);
     res.status(200).json(new ApiResponse(200, 'OFFERS_FETCHED', offers, req.lang));
   });
 
@@ -22,12 +21,12 @@ class OfferController {
 
   updateOffer = AsyncHandler(async (req, res) => {
     const imagePath = req.file ? `/uploads/offers/${req.file.filename}` : null;
-    const offer = await offerService.updateOffer(req.params.id, req.body, imagePath);
+    const offer = await offerService.updateOffer(req.params.id, req.body, imagePath, req.user);
     res.status(200).json(new ApiResponse(200, 'OFFER_UPDATED', offer, req.lang));
   });
 
   deleteOffer = AsyncHandler(async (req, res) => {
-    await offerService.deleteOffer(req.params.id);
+    await offerService.deleteOffer(req.params.id, req.user);
     res.status(200).json(new ApiResponse(200, 'OFFER_DELETED', {}, req.lang));
   });
 }
