@@ -173,6 +173,14 @@ class TripService {
     if (typeof excluded === 'string') {
       try { excluded = JSON.parse(excluded); } catch (e) { excluded = []; }
     }
+    let pickupPoints = data.pickupPoints;
+    if (typeof pickupPoints === 'string') {
+      try { pickupPoints = JSON.parse(pickupPoints); } catch (e) { pickupPoints = []; }
+    }
+    let pickupTimes = data.pickupTimes;
+    if (typeof pickupTimes === 'string') {
+      try { pickupTimes = JSON.parse(pickupTimes); } catch (e) { pickupTimes = []; }
+    }
 
     const { processedDays, processedGallery } = this._processTripFilesAndDays(data.days, files);
 
@@ -205,6 +213,8 @@ class TripService {
       gallery: uniqueGallery,
       included: Array.isArray(included) ? included : [],
       excluded: Array.isArray(excluded) ? excluded : [],
+      pickupPoints: Array.isArray(pickupPoints) ? pickupPoints : [],
+      pickupTimes: Array.isArray(pickupTimes) ? pickupTimes : [],
       cancelPolicy: cancelPolicy || '',
       category: categoryId,
       company: companyId,
@@ -316,6 +326,15 @@ class TripService {
       filter.startDate = { ...(filter.startDate || {}), $lte: new Date(eDate) };
     }
 
+    // Filter by duration (days)
+    if (query.duration || query.durationDays) {
+      filter.durationDays = Number(query.duration || query.durationDays);
+    } else if (query.minDuration || query.maxDuration) {
+      filter.durationDays = {};
+      if (query.minDuration) filter.durationDays.$gte = Number(query.minDuration);
+      if (query.maxDuration) filter.durationDays.$lte = Number(query.maxDuration);
+    }
+
     // Filter by minimum rating
     if (query.minRating) {
       filter.averageRating = { $gte: Number(query.minRating) };
@@ -355,14 +374,48 @@ class TripService {
       .limit(limit);
 
     const totalItems = await Trip.countDocuments(filter);
+    const tripsWithFlags = await this._attachUserFlags(trips, user);
 
-    return getPagingData(trips, totalItems, page, limit, 'trips');
+    return getPagingData(tripsWithFlags, totalItems, page, limit, 'trips');
+  }
+
+  /**
+   * Internal helper to attach isFavorite and isBooked boolean flags to trips for the requesting user
+   */
+  async _attachUserFlags(trips, user = null) {
+    if (!Array.isArray(trips) || trips.length === 0) return trips;
+
+    const Favorite = require('../models/favorite.model');
+    const Booking = require('../models/booking.model');
+
+    let favoriteSet = new Set();
+    let bookedSet = new Set();
+
+    if (user && user._id) {
+      const [favIds, bookIds] = await Promise.all([
+        Favorite.find({ user: user._id }).distinct('trip'),
+        Booking.find({
+          user: user._id,
+          status: { $in: ['pending', 'approved', 'completed'] },
+        }).distinct('trip'),
+      ]);
+      favoriteSet = new Set(favIds.map((id) => id.toString()));
+      bookedSet = new Set(bookIds.map((id) => id.toString()));
+    }
+
+    return trips.map((t) => {
+      const tObj = typeof t.toObject === 'function' ? t.toObject() : { ...t };
+      const tripIdStr = tObj._id ? tObj._id.toString() : '';
+      tObj.isFavorite = favoriteSet.has(tripIdStr);
+      tObj.isBooked = bookedSet.has(tripIdStr);
+      return tObj;
+    });
   }
 
   /**
    * Get featured trips list
    */
-  async getFeaturedTrips(limit = 10) {
+  async getFeaturedTrips(limit = 10, user = null) {
     const activeCompanyIds = await Company.find({ status: 'active', isDeleted: false }).distinct('_id');
 
     const trips = await Trip.find({
@@ -376,7 +429,7 @@ class TripService {
       .sort({ createdAt: -1 })
       .limit(Number(limit));
 
-    return trips;
+    return await this._attachUserFlags(trips, user);
   }
 
   /**
@@ -424,10 +477,13 @@ class TripService {
       .sort({ startDate: 1 })
       .limit(5);
 
+    const [tripWithFlags] = await this._attachUserFlags([trip], user);
+    const upcomingWithFlags = await this._attachUserFlags(upcomingSchedules, user);
+
     return {
-      trip,
+      trip: tripWithFlags,
       reviews,
-      upcomingSchedules,
+      upcomingSchedules: upcomingWithFlags,
     };
   }
 
@@ -515,6 +571,154 @@ class TripService {
     await trip.save();
 
     return true;
+  }
+
+  /**
+   * Duplicate an existing trip into a draft copy
+   */
+  async duplicateTrip(tripId, user = null) {
+    const originalTrip = await Trip.findOne({ _id: tripId, isDeleted: false });
+    if (!originalTrip) {
+      throw new ApiError(404, 'TRIP_NOT_FOUND');
+    }
+
+    if (user && user.role === 'company_admin') {
+      const userCompanyId = user.company._id ? user.company._id.toString() : user.company.toString();
+      if (originalTrip.company.toString() !== userCompanyId) {
+        throw new ApiError(403, 'FORBIDDEN_NOT_TRIP_OWNER');
+      }
+    }
+
+    const tripData = originalTrip.toObject();
+    delete tripData._id;
+    delete tripData.createdAt;
+    delete tripData.updatedAt;
+    delete tripData.__v;
+
+    tripData.title = `${tripData.title} (نسخة)`;
+    tripData.status = 'draft';
+    tripData.availableSeats = tripData.capacity;
+    tripData.createdBySystem = false;
+    tripData.isProtected = false;
+
+    // Reset days ids
+    if (Array.isArray(tripData.days)) {
+      tripData.days = tripData.days.map((day) => ({
+        ...day,
+        _id: new mongoose.Types.ObjectId(),
+        activities: (day.activities || []).map((act) => ({
+          ...act,
+          _id: new mongoose.Types.ObjectId(),
+        })),
+      }));
+    }
+
+    const duplicatedTrip = await Trip.create(tripData);
+    return duplicatedTrip;
+  }
+
+  /**
+   * Get passenger list manifest for a specific trip
+   */
+  async getTripPassengers(tripId, user = null) {
+    const trip = await Trip.findOne({ _id: tripId, isDeleted: false });
+    if (!trip) {
+      throw new ApiError(404, 'TRIP_NOT_FOUND');
+    }
+
+    if (user && user.role === 'company_admin') {
+      const userCompanyId = user.company._id ? user.company._id.toString() : user.company.toString();
+      if (trip.company.toString() !== userCompanyId) {
+        throw new ApiError(403, 'FORBIDDEN_NOT_TRIP_OWNER');
+      }
+    }
+
+    const Booking = require('../models/booking.model');
+    const bookings = await Booking.find({
+      trip: tripId,
+      status: { $in: ['approved', 'pending'] },
+    })
+      .populate('user', 'fullName email phone profileImage')
+      .sort({ createdAt: -1 });
+
+    const totalSeatsBooked = bookings.reduce((sum, b) => sum + b.numberOfSeats, 0);
+
+    const passengers = bookings.map((b) => ({
+      bookingId: b._id,
+      user: b.user,
+      numberOfSeats: b.numberOfSeats,
+      pickupPoint: b.pickupPoint || '',
+      pickupTime: b.pickupTime || '',
+      status: b.status,
+      paymentStatus: b.paymentStatus,
+      totalPrice: b.totalPrice,
+      notes: b.notes,
+      createdAt: b.createdAt,
+    }));
+
+    return {
+      trip: {
+        _id: trip._id,
+        title: trip.title,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        capacity: trip.capacity,
+        availableSeats: trip.availableSeats,
+        totalSeatsBooked,
+      },
+      passengersCount: passengers.length,
+      totalSeatsBooked,
+      passengers,
+    };
+  }
+
+  /**
+   * Broadcast trip announcement notification to all booked passengers of a trip
+   */
+  async sendTripAnnouncement(tripId, user, { title, message }) {
+    const trip = await Trip.findOne({ _id: tripId, isDeleted: false });
+    if (!trip) {
+      throw new ApiError(404, 'TRIP_NOT_FOUND');
+    }
+
+    if (user && user.role === 'company_admin') {
+      const userCompanyId = user.company._id ? user.company._id.toString() : user.company.toString();
+      if (trip.company.toString() !== userCompanyId) {
+        throw new ApiError(403, 'FORBIDDEN_NOT_TRIP_OWNER');
+      }
+    }
+
+    if (!title || !message) {
+      throw new ApiError(400, 'TITLE_AND_MESSAGE_REQUIRED');
+    }
+
+    const Booking = require('../models/booking.model');
+    const bookings = await Booking.find({
+      trip: tripId,
+      status: { $in: ['approved', 'pending'] },
+    }).distinct('user');
+
+    const notificationService = require('./notification.service');
+    let sentCount = 0;
+
+    for (const userId of bookings) {
+      try {
+        await notificationService.createNotification({
+          user: userId,
+          title: `تحديث رحلة (${trip.title}): ${title}`,
+          body: message,
+          type: 'trip_update',
+          data: { tripId: trip._id },
+        });
+        sentCount++;
+      } catch (e) {}
+    }
+
+    return {
+      sentCount,
+      totalPassengers: bookings.length,
+      message: 'ANNOUNCEMENT_SENT_SUCCESSFULLY',
+    };
   }
 }
 

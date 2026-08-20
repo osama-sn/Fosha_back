@@ -16,7 +16,7 @@ class HomeController {
       : (req.query.governorate || '');
 
     const [featuredTrips, governorateTripsData, featuredCompaniesData, categories, offers] = await Promise.all([
-      tripService.getFeaturedTrips(10),
+      tripService.getFeaturedTrips(10, req.user),
       userGovernorate
         ? tripService.getAllTrips({ governorate: userGovernorate, limit: 10 }, req.user)
         : Promise.resolve({ trips: [] }),

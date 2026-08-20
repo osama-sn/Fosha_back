@@ -31,11 +31,14 @@ router.delete(
   companyController.deleteCompany
 );
 
+const { uploadCompanyImages } = require('../middlewares/companyUploadMiddleware');
+
 // Protected routes (Company Admin or Super Admin update)
 router.patch(
   '/:id',
   protect,
   authorize('super_admin', 'admin', 'company_admin'),
+  uploadCompanyImages,
   companyController.updateCompany
 );
 
@@ -43,6 +46,7 @@ router.put(
   '/:id',
   protect,
   authorize('super_admin', 'admin', 'company_admin'),
+  uploadCompanyImages,
   companyController.updateCompany
 );
 

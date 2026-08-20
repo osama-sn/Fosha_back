@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:admin": "node src/utils/seedAdmin.js"
+    "seed:admin": "node src/utils/seedAdmin.js",
+    "reset:db": "node src/utils/resetDb.js"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,7 @@
     "multer": "^2.2.0",
     "node-cron": "^4.6.0",
     "nodemailer": "^9.0.3",
+    "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   },

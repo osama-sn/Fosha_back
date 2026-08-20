@@ -58,6 +58,17 @@ const tripSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    durationDays: {
+      type: Number,
+      default: 1,
+      min: 1,
+      index: true,
+    },
+    durationNights: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
@@ -79,8 +90,14 @@ const tripSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['draft', 'published', 'cancelled', 'completed'],
+      enum: ['draft', 'published', 'hidden', 'cancelled', 'completed'],
       default: 'draft',
+      index: true,
+    },
+    isHidden: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
     createdBySystem: {
       type: Boolean,
@@ -115,6 +132,16 @@ const tripSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    pickupPoints: [
+      {
+        location: { type: String, required: true },
+        time: { type: String, default: '' },
+      },
+    ],
+    pickupTimes: {
+      type: [String],
+      default: [],
+    },
     averageRating: {
       type: Number,
       default: 0,
@@ -132,6 +159,17 @@ const tripSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Calculate duration in days and nights prior to saving
+tripSchema.pre('save', function (next) {
+  if (this.startDate && this.endDate) {
+    const diffTime = Math.abs(new Date(this.endDate) - new Date(this.startDate));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    this.durationDays = diffDays > 0 ? diffDays : 1;
+    this.durationNights = diffDays > 1 ? diffDays - 1 : 0;
+  }
+  if (typeof next === 'function') next();
+});
 
 // Filter out soft-deleted documents by default in find queries
 tripSchema.pre(/^find/, function () {

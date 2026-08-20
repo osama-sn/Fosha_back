@@ -70,6 +70,19 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    blockReason: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    blockedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

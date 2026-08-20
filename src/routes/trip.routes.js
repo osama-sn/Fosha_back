@@ -14,7 +14,7 @@ const router = express.Router();
 
 // Public / Optional Auth Routes
 router.get('/', optionalProtect, tripController.getAllTrips);
-router.get('/featured', tripController.getFeaturedTrips);
+router.get('/featured', optionalProtect, tripController.getFeaturedTrips);
 router.get('/:id', optionalProtect, tripController.getTripById);
 
 // Review Public Route
@@ -59,6 +59,30 @@ router.delete(
   protect,
   authorize('super_admin', 'admin', 'company_admin'),
   tripController.deleteTrip
+);
+
+// Duplicate Trip
+router.post(
+  '/:id/duplicate',
+  protect,
+  authorize('super_admin', 'admin', 'company_admin'),
+  tripController.duplicateTrip
+);
+
+// Get Passenger List Manifest
+router.get(
+  '/:id/passengers',
+  protect,
+  authorize('super_admin', 'admin', 'company_admin'),
+  tripController.getTripPassengers
+);
+
+// Send Broadcast Announcement to Trip Passengers
+router.post(
+  '/:id/announcements',
+  protect,
+  authorize('super_admin', 'admin', 'company_admin'),
+  tripController.sendTripAnnouncement
 );
 
 module.exports = router;

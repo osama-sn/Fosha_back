@@ -22,6 +22,10 @@ const protect = AsyncHandler(async (req, res, next) => {
       throw new ApiError(401, 'USER_NOT_FOUND');
     }
 
+    if (user.isBlocked) {
+      throw new ApiError(403, 'FORBIDDEN_USER_BLOCKED');
+    }
+
     req.user = user;
     next();
   } catch (error) {

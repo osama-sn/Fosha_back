@@ -65,13 +65,53 @@ const bookingSchema = new mongoose.Schema(
       type: tripSnapshotSchema,
       required: true,
     },
+    passengers: [
+      {
+        fullName: { type: String, trim: true, default: '' },
+        phone: { type: String, trim: true, default: '' },
+        age: { type: Number },
+        gender: { type: String, enum: ['male', 'female', 'other'], default: 'male' },
+        notes: { type: String, default: '' },
+      },
+    ],
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'cancelled'],
+      enum: ['pending', 'approved', 'rejected', 'cancelled', 'completed'],
       default: 'pending',
       index: true,
     },
+    paymentMethod: {
+      type: String,
+      enum: ['vodafone_cash', 'orange_cash', 'etisalat_cash', 'bank_transfer', 'cash'],
+      default: 'cash',
+      index: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'pending_verification', 'paid', 'partially_paid', 'refunded', 'pay_on_arrival'],
+      default: 'unpaid',
+      index: true,
+    },
+    paymentReceiptImage: {
+      type: String,
+      default: '',
+    },
+    paymentNotes: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     notes: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    pickupPoint: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    pickupTime: {
       type: String,
       default: '',
       trim: true,

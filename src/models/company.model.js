@@ -36,6 +36,43 @@ const companySchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    whatsapp: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    socialMedia: {
+      facebook: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+      twitter: { type: String, default: '' },
+      tiktok: { type: String, default: '' },
+      youtube: { type: String, default: '' },
+      website: { type: String, default: '' },
+    },
+    paymentMethods: {
+      vodafoneCash: {
+        number: { type: String, default: '' },
+        instructions: { type: String, default: '' },
+      },
+      orangeCash: {
+        number: { type: String, default: '' },
+        instructions: { type: String, default: '' },
+      },
+      etisalatCash: {
+        number: { type: String, default: '' },
+        instructions: { type: String, default: '' },
+      },
+      bankTransfer: {
+        bankName: { type: String, default: '' },
+        accountNumber: { type: String, default: '' },
+        iban: { type: String, default: '' },
+        accountHolder: { type: String, default: '' },
+        instructions: { type: String, default: '' },
+      },
+      cash: {
+        instructions: { type: String, default: '' },
+      },
+    },
     governorate: {
       type: String,
       default: '',

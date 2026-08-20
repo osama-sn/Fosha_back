@@ -200,7 +200,7 @@ class CompanyService {
   /**
    * Update company profile (Company Admin or Super Admin)
    */
-  async updateCompany(id, updateData, user) {
+  async updateCompany(id, updateData, user, files = {}) {
     const company = await Company.findById(id);
     if (!company) {
       throw new ApiError(404, 'COMPANY_NOT_FOUND');
@@ -213,6 +213,14 @@ class CompanyService {
       throw new ApiError(403, 'FORBIDDEN_NOT_COMPANY_OWNER');
     }
 
+    // Process uploaded logo and cover image files
+    if (files && files.logo && files.logo[0]) {
+      company.logo = `/uploads/companies/${files.logo[0].filename}`;
+    }
+    if (files && files.coverImage && files.coverImage[0]) {
+      company.coverImage = `/uploads/companies/${files.coverImage[0].filename}`;
+    }
+
     // Company Admin allowed updates
     const allowedCompanyAdminFields = [
       'name',
@@ -223,6 +231,8 @@ class CompanyService {
       'contactEmail',
       'address',
       'governorate',
+      'whatsapp',
+      'paymentMethods',
     ];
 
     // Super Admin additional updates
@@ -242,9 +252,28 @@ class CompanyService {
 
     fieldsToUpdate.forEach((field) => {
       if (updateData[field] !== undefined) {
-        company[field] = updateData[field];
+        if (field === 'paymentMethods' && typeof updateData[field] === 'string') {
+          try {
+            company[field] = JSON.parse(updateData[field]);
+          } catch (e) {
+            // Keep existing if JSON parse fails
+          }
+        } else {
+          company[field] = updateData[field];
+        }
       }
     });
+
+    if (updateData.socialMedia) {
+      let social = updateData.socialMedia;
+      if (typeof social === 'string') {
+        try { social = JSON.parse(social); } catch (e) { social = {}; }
+      }
+      company.socialMedia = {
+        ...(company.socialMedia || {}),
+        ...social,
+      };
+    }
 
     await company.save();
     return company;
@@ -265,7 +294,7 @@ class CompanyService {
   }
 
   /**
-   * Add or update review for a company
+   * Add or update review for a company (Requires at least one completed booking with company)
    */
   async addCompanyReview(companyId, userId, { rating, comment }) {
     const company = await Company.findById(companyId);
@@ -273,16 +302,31 @@ class CompanyService {
       throw new ApiError(404, 'COMPANY_NOT_FOUND');
     }
 
+    // Verify user has completed booking with this company
+    const Booking = require('../models/booking.model');
+    const completedBooking = await Booking.findOne({
+      user: userId,
+      company: companyId,
+      $or: [
+        { status: 'completed' },
+        { status: 'approved', 'tripSnapshot.endDate': { $lte: new Date() } },
+      ],
+    });
+
+    if (!completedBooking) {
+      throw new ApiError(400, 'COMPLETED_BOOKING_REQUIRED_FOR_COMPANY_REVIEW');
+    }
+
     let review = await CompanyReview.findOne({ company: companyId, user: userId });
     if (review) {
-      review.rating = rating;
+      review.rating = Number(rating);
       review.comment = comment || '';
       await review.save();
     } else {
       review = await CompanyReview.create({
         company: companyId,
         user: userId,
-        rating,
+        rating: Number(rating),
         comment: comment || '',
       });
     }

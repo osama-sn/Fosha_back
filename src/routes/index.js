@@ -11,6 +11,9 @@ const couponRoutes = require('./coupon.routes');
 const offerRoutes = require('./offer.routes');
 const adminRoutes = require('./admin.routes');
 const homeRoutes = require('./home.routes');
+const expenseRoutes = require('./expense.routes');
+const chatRoutes = require('./chat.routes');
+const settingsRoutes = require('./settings.routes');
 
 const router = express.Router();
 
@@ -51,5 +54,14 @@ router.use('/offers', offerRoutes);
 
 // Admin Analytics Dashboard Routes
 router.use('/admin', adminRoutes);
+
+// Expenses Management Routes
+router.use('/expenses', expenseRoutes);
+
+// Chat & Messaging Routes
+router.use('/chats', chatRoutes);
+
+// Platform Settings Routes
+router.use('/settings', settingsRoutes);
 
 module.exports = router;

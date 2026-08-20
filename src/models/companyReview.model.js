@@ -29,6 +29,16 @@ const companyReviewSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isHidden: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    hideReason: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
   {
     timestamps: true,

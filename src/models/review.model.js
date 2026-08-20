@@ -27,6 +27,16 @@ const reviewSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isHidden: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    hideReason: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
   {
     timestamps: true,
@@ -39,7 +49,7 @@ reviewSchema.index({ trip: 1, user: 1 }, { unique: true });
 // Static method to recalculate average rating and review count on Trip
 reviewSchema.statics.calcAverageRating = async function (tripId) {
   const stats = await this.aggregate([
-    { $match: { trip: tripId } },
+    { $match: { trip: tripId, isHidden: { $ne: true } } },
     {
       $group: {
         _id: '$trip',

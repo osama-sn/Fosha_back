@@ -80,7 +80,17 @@ class FavoriteService {
     const validFavorites = favorites.filter((f) => f.trip !== null);
     const totalItems = await Favorite.countDocuments(filter);
 
-    return getPagingData(validFavorites, totalItems, page, limit, 'favorites');
+    const tripService = require('./trip.service');
+    const rawTrips = validFavorites.map((f) => f.trip);
+    const tripsWithFlags = await tripService._attachUserFlags(rawTrips, { _id: userId });
+
+    const favoritesWithFlags = validFavorites.map((f, index) => {
+      const fObj = f.toObject();
+      fObj.trip = tripsWithFlags[index];
+      return fObj;
+    });
+
+    return getPagingData(favoritesWithFlags, totalItems, page, limit, 'favorites');
   }
 
   /**

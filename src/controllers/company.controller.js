@@ -24,7 +24,7 @@ const getCompanyById = AsyncHandler(async (req, res) => {
 });
 
 const updateCompany = AsyncHandler(async (req, res) => {
-  const company = await companyService.updateCompany(req.params.id, req.body, req.user);
+  const company = await companyService.updateCompany(req.params.id, req.body, req.user, req.files);
   res
     .status(200)
     .json(new ApiResponse(200, 'COMPANY_UPDATED_SUCCESSFULLY', company, req.lang));

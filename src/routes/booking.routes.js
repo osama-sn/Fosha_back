@@ -53,4 +53,13 @@ router.patch(
   bookingController.cancelBooking
 );
 
+const { uploadPaymentReceipt } = require('../middlewares/paymentUploadMiddleware');
+
+// Update Payment Info & Upload Receipt (Client)
+router.patch(
+  '/:id/payment',
+  uploadPaymentReceipt,
+  bookingController.updatePaymentInfo
+);
+
 module.exports = router;

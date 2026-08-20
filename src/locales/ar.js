@@ -41,6 +41,12 @@ module.exports = {
   TRIP_PUBLISHED: 'تم نشر الرحلة بنجاح.',
   TRIP_REPUBLISHED: 'تم إعادة نشر الرحلة وتحديث المقاعد المتاحة بنجاح.',
   TRIP_NOT_FOUND: 'الرحلة غير موجودة أو تم حذفها.',
+  TRIP_DUPLICATED_SUCCESSFULLY: 'تم تكرار الرحلة بنجاح.',
+  PASSENGER_LIST_FETCHED: 'تم جلب قائمة المسافرين بنجاح.',
+  ANNOUNCEMENT_SENT_SUCCESSFULLY: 'تم إرسال التنبيه للمسافرين بنجاح.',
+  TRIP_NOT_FOUND_FOR_COMPANY: 'الرحلة غير موجودة لهذه الشركة.',
+  TRIP_NOT_BELONG_TO_COMPANY: 'الرحلة لا تتبع لهذه الشركة.',
+  CAPACITY_CANNOT_BE_LESS_THAN_BOOKED_SEATS: 'سعة الرحلة لا يمكن أن تكون أقل من عدد المقاعد المحجوزة بالفعل.',
 
   // Reviews
   REVIEW_ADDED: 'تم إضافة التقييم بنجاح.',
@@ -72,6 +78,8 @@ module.exports = {
   VAL_TRIP_END_DATE_REQUIRED: 'تاريخ نهاية الرحلة مطلوب.',
   VAL_RATING_REQUIRED: 'التقييم مطلوب ويجب أن يكون بين 1 و 5.',
   VAL_COMMENT_REQUIRED: 'تعليق التقييم مطلوب.',
+  TITLE_AND_MESSAGE_REQUIRED: 'العنوان ونص الرسالة مطلوبان.',
+  TEXT_OR_IMAGE_REQUIRED: 'يجب تقديم نص أو صورة.',
 
   // Bookings
   BOOKING_CREATED: 'تم حجز الرحلة بنجاح.',
@@ -87,6 +95,7 @@ module.exports = {
   CANNOT_APPROVE_BOOKING: 'لا يمكن الموافقة على هذا الحجز.',
   CANNOT_REJECT_BOOKING: 'لا يمكن رفض هذا الحجز.',
   ALREADY_BOOKED: 'لديك حجز نشط بالفعل لهذه الرحلة.',
+  BOOKING_ALREADY_CANCELLED_OR_REJECTED: 'الحجز ملغى أو مرفوض بالفعل.',
   VAL_TRIP_ID_REQUIRED: 'معرف الرحلة غير صالح أو مطلوب.',
   VAL_SEATS_MIN: 'عدد المقاعد يجب أن يكون 1 على الأقل.',
 
@@ -112,6 +121,9 @@ module.exports = {
 
   // Admin Stats, Coupons & Categories
   STATS_FETCHED: 'تم جلب إحصائيات لوحة التحكم بنجاح.',
+  MONTHLY_REPORT_FETCHED: 'تم جلب التقرير الشهري بنجاح.',
+  COMPANY_MONTHLY_STATS_FETCHED: 'تم جلب الإحصائيات الشهرية للشركات بنجاح.',
+  CANNOT_BLOCK_ADMIN_USER: 'لا يمكن حظر حسابات الإدارة العليا.',
   COUPON_CREATED: 'تم إنشاء كود الخصم بنجاح.',
   COUPON_VALID: 'كود الخصم صالح ومطبق بنجاح.',
   COUPON_INVALID: 'كود الخصم غير صالح أو غير موجود.',
@@ -119,12 +131,17 @@ module.exports = {
   COUPON_LIMIT_REACHED: 'عفواً، تم الوصول للحد الأقصى لاستخدام كود الخصم.',
   COUPON_DELETED: 'تم حذف كود الخصم بنجاح.',
   COUPONS_FETCHED: 'تم جلب قائمة أكواد الخصم بنجاح.',
+  COUPON_ALREADY_EXISTS: 'كود الخصم هذا موجود بالفعل.',
+  COUPON_NOT_VALID_FOR_COMPANY: 'كوبون الخصم غير صالح لهذه الشركة.',
+  COUPON_NOT_FOUND: 'كوبون الخصم غير موجود.',
   CATEGORY_CREATED: 'تم إنشاء التصنيف بنجاح.',
   CATEGORIES_FETCHED: 'تم جلب قائمة التصنيفات بنجاح.',
   CATEGORY_UPDATED: 'تم تحديث التصنيف بنجاح.',
   CATEGORY_DELETED: 'تم حذف التصنيف بنجاح.',
   CATEGORY_NOT_FOUND: 'التصنيف غير موجود.',
+  CATEGORY_ALREADY_EXISTS: 'هذا القسم موجود بالفعل.',
   DEMO_CLEANUP_SUCCESS: 'تم تنظيف بيانات الطلاب والتأكد من حفظ بيانات المطور بنجاح.',
+  HOME_DATA_FETCHED: 'تم جلب بيانات الصفحة الرئيسية بنجاح.',
 
   // Offers
   OFFER_CREATED: 'تم إضافة العرض بنجاح.',
@@ -146,6 +163,10 @@ module.exports = {
   COMPANY_UPDATED_SUCCESSFULLY: 'تم تحديث بيانات الشركة بنجاح.',
   COMPANY_DELETED_SUCCESSFULLY: 'تم حذف الشركة بنجاح.',
   COMPANY_NOT_FOUND: 'الشركة غير موجودة.',
+  COMPANY_ID_REQUIRED: 'معرّف الشركة مطلوب.',
+  COMPANY_CUSTOMERS_FETCHED: 'تم جلب قائمة عملاء الشركة بنجاح.',
+  COMPANY_FINANCIAL_REPORT_FETCHED: 'تم جلب التقرير المالي للشركة بنجاح.',
+  COMPANY_NOT_LINKED: 'حساب الإدارة غير مرتبط بأي شركة.',
   ADMIN_EMAIL_OR_PHONE_ALREADY_EXISTS: 'البريد أو الهاتف الخاص بأدمن الشركة مسجل بالفعل.',
   COMPANY_ACCOUNT_NOT_LINKED: 'حساب الأدمن الخاص بك غير مرتبط بأي شركة.',
   FORBIDDEN_NOT_COMPANY_OWNER: 'غير مصرح. يمكنك تعديل بيانات شركتك فقط.',
@@ -156,5 +177,39 @@ module.exports = {
   REVIEW_ADDED_SUCCESSFULLY: 'تم إضافة التقييم بنجاح.',
   FEATURED_TRIPS_FETCHED: 'تم جلب الرحلات المميزة بنجاح.',
   COMPANY_STATS_FETCHED: 'تم جلب إحصائيات لوحة تحكم الشركة بنجاح.',
-};
 
+  // Chat & Messaging
+  CHAT_RETRIEVED_SUCCESSFULLY: 'تم جلب المحادثة بنجاح.',
+  CHATS_FETCHED: 'تم جلب المحادثات بنجاح.',
+  MESSAGES_FETCHED: 'تم جلب الرسائل بنجاح.',
+  MESSAGE_SENT_SUCCESSFULLY: 'تم إرسال الرسالة بنجاح.',
+  CHAT_NOT_FOUND: 'المحادثة غير موجودة.',
+  MESSAGE_TEXT_OR_IMAGE_REQUIRED: 'يجب إدخال نص الرسالة أو إرفاق صورة.',
+
+  // Expenses Management
+  EXPENSE_CREATED_SUCCESSFULLY: 'تم إضافة المصروف بنجاح.',
+  EXPENSES_FETCHED: 'تم جلب المصروفات بنجاح.',
+  EXPENSES_SUMMARY_FETCHED: 'تم جلب ملخص المصروفات بنجاح.',
+  EXPENSE_UPDATED_SUCCESSFULLY: 'تم تحديث المصروف بنجاح.',
+  EXPENSE_DELETED_SUCCESSFULLY: 'تم حذف المصروف بنجاح.',
+  TITLE_AND_AMOUNT_REQUIRED: 'عنوان المصروف والمبلغ مطلوبان.',
+  EXPENSE_NOT_FOUND: 'المصروف غير موجود.',
+
+  // Super Admin V1 Features
+  FORBIDDEN_USER_BLOCKED: 'عذراً، تم حظر حسابك من قبل إدارة المنصة.',
+  CANNOT_BLOCK_SUPER_ADMIN: 'لا يمكن حظر حساب السوبر أدمن.',
+  USERS_FETCHED: 'تم جلب قائمة المستخدمين بنجاح.',
+  USER_FETCHED: 'تم جلب بيانات المستخدم بنجاح.',
+  USER_BLOCKED_SUCCESS: 'تم حظر المستخدم بنجاح.',
+  USER_UNBLOCK_SUCCESS: 'تم إلغاء حظر المستخدم بنجاح.',
+  USER_UNBLOCKED_SUCCESS: 'تم إلغاء حظر المستخدم بنجاح.',
+  REVIEW_VISIBILITY_UPDATED: 'تم تحديث حالة ظهور التقييم بنجاح.',
+  REVIEW_NOT_FOUND: 'التقييم غير موجود.',
+  TRIP_STATUS_UPDATED: 'تم تحديث حالة الرحلة بنجاح.',
+  BOOKING_PAYMENT_STATUS_UPDATED: 'تم تحديث حالة دفع الحجز بنجاح.',
+  SETTINGS_FETCHED: 'تم جلب اعدادات المنصة بنجاح.',
+  SETTINGS_UPDATED: 'تم تحديث اعدادات المنصة بنجاح.',
+  SETTLEMENTS_FETCHED: 'تم جلب تسويات العمولات بنجاح.',
+  SETTLEMENT_PAYMENT_RECORDED: 'تم تسجيل دفعة التصفية بنجاح.',
+  INVALID_PAYMENT_AMOUNT: 'المبلغ المدفوع يجب أن يكون رقماً موجباً.',
+};

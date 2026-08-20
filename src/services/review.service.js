@@ -6,18 +6,29 @@ const { getPagination, getPagingData } = require('../utils/pagination.util');
 
 class ReviewService {
   /**
-   * Add a review for a trip
+   * Add a review for a trip (Requires completed booking after trip end date)
    */
-  async createReview(userId, tripId, { rating, comment, isProtected }, creatorUser = null) {
+  async createReview(userId, tripId, { rating, comment, companyRating, companyComment, isProtected }, creatorUser = null) {
     const trip = await Trip.findOne({ _id: tripId, isDeleted: false });
     if (!trip) {
       throw new ApiError(404, 'TRIP_NOT_FOUND');
     }
 
-    // Check if user has an approved booking for this trip
-    const approvedBooking = await Booking.findOne({ user: userId, trip: tripId, status: 'approved' });
-    if (!approvedBooking) {
-      throw new ApiError(400, 'BOOKING_REQUIRED_FOR_REVIEW');
+    // Check if user has a completed booking (explicit completed status or approved status with trip endDate past)
+    const completedBooking = await Booking.findOne({
+      user: userId,
+      trip: tripId,
+      $or: [
+        { status: 'completed' },
+        { status: 'approved', 'tripSnapshot.endDate': { $lte: new Date() } },
+        { status: 'approved' }, // Allow approved if trip endDate <= now or trip has completed
+      ],
+    });
+
+    const isTripEnded = trip.endDate ? new Date(trip.endDate) <= new Date() : true;
+
+    if (!completedBooking || (!isTripEnded && completedBooking.status !== 'completed')) {
+      throw new ApiError(400, 'COMPLETED_BOOKING_REQUIRED_FOR_REVIEW');
     }
 
     // Check if user has already reviewed this trip
@@ -37,6 +48,19 @@ class ReviewService {
       comment,
       isProtected: isProtectedReview,
     });
+
+    // Optionally process company review if company rating or comment is provided
+    if (companyRating || companyComment) {
+      try {
+        const companyService = require('./company.service');
+        await companyService.addCompanyReview(trip.company, userId, {
+          rating: companyRating ? Number(companyRating) : Number(rating),
+          comment: companyComment || comment || '',
+        });
+      } catch (e) {
+        console.error('⚠️ Note: Dual company review creation note:', e.message);
+      }
+    }
 
     await review.populate('user', 'fullName profileImage');
     return review;

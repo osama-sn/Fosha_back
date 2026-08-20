@@ -49,6 +49,16 @@ class BookingController {
     );
     res.status(200).json(new ApiResponse(200, 'BOOKING_CANCELLED', booking, req.lang));
   });
+
+  updatePaymentInfo = AsyncHandler(async (req, res) => {
+    const booking = await bookingService.updatePaymentInfo(
+      req.params.id,
+      req.user._id,
+      req.body,
+      req.file
+    );
+    res.status(200).json(new ApiResponse(200, 'PAYMENT_INFO_UPDATED', booking, req.lang));
+  });
 }
 
 module.exports = new BookingController();
