@@ -4,6 +4,7 @@ const Trip = require('../models/trip.model');
 const Booking = require('../models/booking.model');
 const Company = require('../models/company.model');
 const Settlement = require('../models/settlement.model');
+const Expense = require('../models/expense.model');
 const activityService = require('./activity.service');
 const { getMonthDateRange } = require('../utils/analytics.util');
 const { BookingStatus, CompanyStatus, TripStatus, UserRole } = require('../constants/enums');
@@ -83,6 +84,13 @@ class AdminAnalyticsService {
       { $group: { _id: null, totalMonthlySubscriptions: { $sum: '$monthlySubscriptionFee' } } },
     ]);
     const totalMonthlySubscriptions = subscriptionFeeAgg.length > 0 ? subscriptionFeeAgg[0].totalMonthlySubscriptions : 0;
+
+    // Total expenses across companies
+    const globalExpensesAgg = await Expense.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: null, totalExpenses: { $sum: '$amount' } } },
+    ]);
+    const totalExpenses = globalExpensesAgg.length > 0 ? globalExpensesAgg[0].totalExpenses : 0;
 
     // 6. Top 5 popular companies
     const topCompaniesAgg = await Booking.aggregate([
@@ -209,6 +217,7 @@ class AdminAnalyticsService {
         remainingCommissions,
         totalCompanyNetPayouts,
         totalMonthlySubscriptions,
+        totalExpenses,
       },
       topCompanies: topCompaniesAgg,
       topTrips: topTripsAgg,
@@ -243,7 +252,7 @@ class AdminAnalyticsService {
     const uniqueCustomers = await Booking.find({ company: companyId }).distinct('user');
     const customersCount = uniqueCustomers.length;
 
-    // Financials Aggregation
+    // Financials Aggregation (Bookings)
     const financialsAgg = await Booking.aggregate([
       { $match: { company: compObjId, status: { $in: [BookingStatus.APPROVED, BookingStatus.PENDING] } } },
       {
@@ -259,6 +268,20 @@ class AdminAnalyticsService {
     const totalGrossRevenue = financialsAgg.length > 0 ? financialsAgg[0].totalGrossRevenue : 0;
     const totalAdminCommissions = financialsAgg.length > 0 ? financialsAgg[0].totalAdminCommissions : 0;
     const totalCompanyNetPayouts = financialsAgg.length > 0 ? financialsAgg[0].totalCompanyNetPayouts : 0;
+
+    // Expenses Aggregation
+    const expensesAgg = await Expense.aggregate([
+      { $match: { company: compObjId, isDeleted: false } },
+      {
+        $group: {
+          _id: null,
+          totalExpenses: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    const totalExpenses = expensesAgg.length > 0 ? expensesAgg[0].totalExpenses : 0;
+    const netProfit = totalCompanyNetPayouts - totalExpenses;
 
     // Recent Bookings
     const recentBookings = await Booking.find({ company: companyId })
@@ -292,8 +315,347 @@ class AdminAnalyticsService {
         totalGrossRevenue,
         totalAdminCommissions,
         totalCompanyNetPayouts,
+        companyNetRevenue: totalCompanyNetPayouts,
+        totalExpenses,
+        netProfit,
       },
       recentBookings,
+    };
+  }
+
+  /**
+   * Get customers who booked with the company
+   */
+  async getCompanyCustomers(companyId, { page = 1, limit = 10, search = '' } = {}) {
+    const compObjId = typeof companyId === 'string' ? new mongoose.Types.ObjectId(companyId) : companyId;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const customersAgg = await Booking.aggregate([
+      { $match: { company: compObjId } },
+      {
+        $group: {
+          _id: '$user',
+          totalBookings: { $sum: 1 },
+          approvedBookings: {
+            $sum: { $cond: [{ $eq: ['$status', BookingStatus.APPROVED] }, 1, 0] },
+          },
+          totalSpent: {
+            $sum: { $cond: [{ $eq: ['$status', BookingStatus.APPROVED] }, '$totalPrice', 0] },
+          },
+          lastBookingDate: { $max: '$createdAt' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'userDetails',
+        },
+      },
+      { $unwind: '$userDetails' },
+      ...(search
+        ? [
+            {
+              $match: {
+                $or: [
+                  { 'userDetails.fullName': new RegExp(search, 'i') },
+                  { 'userDetails.email': new RegExp(search, 'i') },
+                  { 'userDetails.phone': new RegExp(search, 'i') },
+                ],
+              },
+            },
+          ]
+        : []),
+      { $sort: { lastBookingDate: -1 } },
+      {
+        $facet: {
+          metadata: [{ $count: 'total' }],
+          data: [
+            { $skip: skip },
+            { $limit: Number(limit) },
+            {
+              $project: {
+                _id: '$userDetails._id',
+                fullName: '$userDetails.fullName',
+                email: '$userDetails.email',
+                phone: '$userDetails.phone',
+                profileImage: '$userDetails.profileImage',
+                totalBookings: 1,
+                approvedBookings: 1,
+                totalSpent: 1,
+                lastBookingDate: 1,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const total = customersAgg[0]?.metadata[0]?.total || 0;
+    const customers = customersAgg[0]?.data || [];
+
+    const { getPagingData } = require('../utils/pagination.util');
+    return getPagingData(customers, total, Number(page), Number(limit), 'customers');
+  }
+
+  /**
+   * Get detailed financial report for a company
+   */
+  async getCompanyFinancialReport(companyId, query = {}) {
+    const compObjId = typeof companyId === 'string' ? new mongoose.Types.ObjectId(companyId) : companyId;
+    const { startDate, endDate, tripId } = query;
+
+    const bookingFilter = { company: compObjId, status: { $in: [BookingStatus.APPROVED, BookingStatus.PENDING] } };
+    const expenseFilter = { company: compObjId, isDeleted: false };
+
+    if (tripId) {
+      const tripObjId = typeof tripId === 'string' ? new mongoose.Types.ObjectId(tripId) : tripId;
+      bookingFilter.trip = tripObjId;
+      expenseFilter.trip = tripObjId;
+    }
+
+    if (startDate || endDate) {
+      bookingFilter.createdAt = {};
+      expenseFilter.expenseDate = {};
+      if (startDate) {
+        bookingFilter.createdAt.$gte = new Date(startDate);
+        expenseFilter.expenseDate.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        bookingFilter.createdAt.$lte = new Date(endDate);
+        expenseFilter.expenseDate.$lte = new Date(endDate);
+      }
+    }
+
+    const [financialsAgg, expensesAgg, categoryAgg, bookingsCountAgg] = await Promise.all([
+      Booking.aggregate([
+        { $match: bookingFilter },
+        {
+          $group: {
+            _id: null,
+            totalGrossRevenue: { $sum: '$totalPrice' },
+            totalAdminCommissions: { $sum: '$adminCommissionAmount' },
+            totalCompanyNetPayouts: { $sum: '$companyNetAmount' },
+            totalBookingsCount: { $sum: 1 },
+          },
+        },
+      ]),
+      Expense.aggregate([
+        { $match: expenseFilter },
+        {
+          $group: {
+            _id: null,
+            totalExpenses: { $sum: '$amount' },
+            expensesCount: { $sum: 1 },
+          },
+        },
+      ]),
+      Expense.aggregate([
+        { $match: expenseFilter },
+        {
+          $group: {
+            _id: '$category',
+            totalAmount: { $sum: '$amount' },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+      Booking.aggregate([
+        { $match: { company: compObjId } },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const totalGrossRevenue = financialsAgg[0]?.totalGrossRevenue || 0;
+    const totalAdminCommissions = financialsAgg[0]?.totalAdminCommissions || 0;
+    const totalCompanyNetPayouts = financialsAgg[0]?.totalCompanyNetPayouts || 0;
+    const totalExpenses = expensesAgg[0]?.totalExpenses || 0;
+    const netProfit = totalCompanyNetPayouts - totalExpenses;
+
+    const company = await Company.findById(companyId).select('name logo status commissionType commissionValue');
+
+    return {
+      company,
+      period: { startDate: startDate || null, endDate: endDate || null },
+      financials: {
+        totalGrossRevenue,
+        totalAdminCommissions,
+        totalCompanyNetPayouts,
+        companyNetRevenue: totalCompanyNetPayouts,
+        totalExpenses,
+        netProfit,
+      },
+      expensesByCategory: categoryAgg.map((cat) => ({
+        category: cat._id,
+        totalAmount: cat.totalAmount,
+        count: cat.count,
+      })),
+      bookingsByStatus: bookingsCountAgg.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {}),
+    };
+  }
+
+  /**
+   * Get monthly financial report for Super Admin
+   */
+  async getMonthlyFinancialReport({ month, year } = {}) {
+    const now = new Date();
+    const currentMonth = month ? Number(month) : now.getMonth() + 1;
+    const currentYear = year ? Number(year) : now.getFullYear();
+
+    const { startDate, endDate } = getMonthDateRange(currentMonth, currentYear);
+
+    const [bookingsAgg, expensesAgg, subscriptionFeeAgg] = await Promise.all([
+      Booking.aggregate([
+        {
+          $match: {
+            status: BookingStatus.APPROVED,
+            createdAt: { $gte: startDate, $lte: endDate },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalGrossSales: { $sum: '$totalPrice' },
+            totalAdminCommissions: { $sum: '$adminCommissionAmount' },
+            totalCompanyNetPayouts: { $sum: '$companyNetAmount' },
+            totalBookings: { $sum: 1 },
+          },
+        },
+      ]),
+      Expense.aggregate([
+        {
+          $match: {
+            isDeleted: false,
+            expenseDate: { $gte: startDate, $lte: endDate },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalExpenses: { $sum: '$amount' },
+          },
+        },
+      ]),
+      Company.aggregate([
+        { $match: { isDeleted: false, status: CompanyStatus.ACTIVE } },
+        { $group: { _id: null, totalMonthlySubscriptions: { $sum: '$monthlySubscriptionFee' } } },
+      ]),
+    ]);
+
+    const totalGrossSales = bookingsAgg[0]?.totalGrossSales || 0;
+    const totalAdminCommissions = bookingsAgg[0]?.totalAdminCommissions || 0;
+    const totalCompanyNetPayouts = bookingsAgg[0]?.totalCompanyNetPayouts || 0;
+    const totalExpenses = expensesAgg[0]?.totalExpenses || 0;
+    const totalMonthlySubscriptions = subscriptionFeeAgg[0]?.totalMonthlySubscriptions || 0;
+    const totalPlatformRevenue = totalAdminCommissions + totalMonthlySubscriptions;
+
+    return {
+      period: { month: currentMonth, year: currentYear },
+      financials: {
+        totalGrossSales,
+        totalAdminCommissions,
+        totalCompanyNetPayouts,
+        totalExpenses,
+        totalMonthlySubscriptions,
+        totalPlatformRevenue,
+      },
+    };
+  }
+
+  /**
+   * Get all companies monthly stats breakdown for Super Admin
+   */
+  async getAllCompaniesMonthlyStats({ month, year, page = 1, limit = 10, search = '' } = {}) {
+    const now = new Date();
+    const currentMonth = month ? Number(month) : now.getMonth() + 1;
+    const currentYear = year ? Number(year) : now.getFullYear();
+
+    const { startDate, endDate } = getMonthDateRange(currentMonth, currentYear);
+    const companyFilter = { isDeleted: false };
+    if (search) {
+      companyFilter.name = new RegExp(search, 'i');
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const [companies, total] = await Promise.all([
+      Company.find(companyFilter).sort({ name: 1 }).skip(skip).limit(Number(limit)),
+      Company.countDocuments(companyFilter),
+    ]);
+
+    const companiesStats = await Promise.all(
+      companies.map(async (comp) => {
+        const [bookingsAgg, expensesAgg] = await Promise.all([
+          Booking.aggregate([
+            {
+              $match: {
+                company: comp._id,
+                status: BookingStatus.APPROVED,
+                createdAt: { $gte: startDate, $lte: endDate },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalGrossSales: { $sum: '$totalPrice' },
+                totalAdminCommissions: { $sum: '$adminCommissionAmount' },
+                totalCompanyNetPayouts: { $sum: '$companyNetAmount' },
+                totalBookings: { $sum: 1 },
+              },
+            },
+          ]),
+          Expense.aggregate([
+            {
+              $match: {
+                company: comp._id,
+                isDeleted: false,
+                expenseDate: { $gte: startDate, $lte: endDate },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalExpenses: { $sum: '$amount' },
+              },
+            },
+          ]),
+        ]);
+
+        const grossSales = bookingsAgg[0]?.totalGrossSales || 0;
+        const adminCommission = bookingsAgg[0]?.totalAdminCommissions || 0;
+        const companyNetPayout = bookingsAgg[0]?.totalCompanyNetPayouts || 0;
+        const totalExpenses = expensesAgg[0]?.totalExpenses || 0;
+        const netProfit = companyNetPayout - totalExpenses;
+
+        return {
+          company: {
+            _id: comp._id,
+            name: comp.name,
+            logo: comp.logo,
+            commissionType: comp.commissionType,
+            commissionValue: comp.commissionValue,
+          },
+          grossSales,
+          adminCommission,
+          companyNetPayout,
+          totalExpenses,
+          netProfit,
+        };
+      })
+    );
+
+    const { getPagingData } = require('../utils/pagination.util');
+    return {
+      period: { month: currentMonth, year: currentYear },
+      ...getPagingData(companiesStats, total, Number(page), Number(limit), 'companiesStats'),
     };
   }
 }

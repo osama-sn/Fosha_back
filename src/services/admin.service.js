@@ -10,13 +10,29 @@ const ApiError = require('../utils/ApiError');
 const { getPagingData } = require('../utils/pagination.util');
 
 class AdminService {
-  // Delegate Dashboard Analytics
+  // Delegate Dashboard Analytics & Reports
   async getDashboardStats() {
     return adminAnalyticsService.getDashboardStats();
   }
 
   async getCompanyDashboardStats(companyId) {
     return adminAnalyticsService.getCompanyDashboardStats(companyId);
+  }
+
+  async getCompanyCustomers(companyId, query) {
+    return adminAnalyticsService.getCompanyCustomers(companyId, query);
+  }
+
+  async getCompanyFinancialReport(companyId, query) {
+    return adminAnalyticsService.getCompanyFinancialReport(companyId, query);
+  }
+
+  async getMonthlyFinancialReport(params) {
+    return adminAnalyticsService.getMonthlyFinancialReport(params);
+  }
+
+  async getAllCompaniesMonthlyStats(params) {
+    return adminAnalyticsService.getAllCompaniesMonthlyStats(params);
   }
 
   // Delegate Settlements
