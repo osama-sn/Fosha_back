@@ -31,6 +31,8 @@ const PaymentMethod = Object.freeze({
   VODAFONE_CASH: 'vodafone_cash',
   ORANGE_CASH: 'orange_cash',
   ETISALAT_CASH: 'etisalat_cash',
+  INSTAPAY: 'instapay',
+  WALLET: 'wallet',
   BANK_TRANSFER: 'bank_transfer',
   CASH: 'cash',
 });

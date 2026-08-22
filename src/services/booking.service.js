@@ -23,6 +23,8 @@ class BookingService {
       isProtected,
       passengers,
       paymentMethod,
+      paymentSenderNumber,
+      paymentSenderInstaPay,
       paymentNotes,
     } = payload;
 
@@ -134,6 +136,8 @@ class BookingService {
       passengers: processedPassengers,
       paymentMethod: paymentMethod || 'cash',
       paymentStatus: initialPaymentStatus,
+      paymentSenderNumber: paymentSenderNumber || '',
+      paymentSenderInstaPay: paymentSenderInstaPay || '',
       paymentNotes: paymentNotes || '',
       notes: notes || '',
       pickupPoint: pickupPoint || '',
@@ -157,7 +161,7 @@ class BookingService {
   /**
    * Update Payment Information & Upload Payment Receipt Screenshot (User/Client)
    */
-  async updatePaymentInfo(bookingId, userId, { paymentMethod, paymentNotes }, file = null) {
+  async updatePaymentInfo(bookingId, userId, { paymentMethod, paymentSenderNumber, paymentSenderInstaPay, paymentNotes }, file = null) {
     const booking = await Booking.findOne({ _id: bookingId, user: userId });
     if (!booking) {
       throw new ApiError(404, 'BOOKING_NOT_FOUND');
@@ -170,6 +174,14 @@ class BookingService {
       } else {
         booking.paymentStatus = 'pending_verification';
       }
+    }
+
+    if (paymentSenderNumber !== undefined) {
+      booking.paymentSenderNumber = paymentSenderNumber;
+    }
+
+    if (paymentSenderInstaPay !== undefined) {
+      booking.paymentSenderInstaPay = paymentSenderInstaPay;
     }
 
     if (paymentNotes !== undefined) {
@@ -355,6 +367,11 @@ class BookingService {
 
     booking.status = BookingStatus.APPROVED;
     booking.approvedAt = new Date();
+
+    if (['pending_verification', 'unpaid'].includes(booking.paymentStatus)) {
+      booking.paymentStatus = 'paid';
+    }
+
     await booking.save();
 
     await booking.populate([

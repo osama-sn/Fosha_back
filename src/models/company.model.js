@@ -62,6 +62,11 @@ const companySchema = new mongoose.Schema(
         number: { type: String, default: '' },
         instructions: { type: String, default: '' },
       },
+      instaPay: {
+        handle: { type: String, default: '' },
+        number: { type: String, default: '' },
+        instructions: { type: String, default: '' },
+      },
       bankTransfer: {
         bankName: { type: String, default: '' },
         accountNumber: { type: String, default: '' },

@@ -8,8 +8,10 @@ const createBookingValidator = [
   body('pickupTime').optional().trim(),
   body('paymentMethod')
     .optional()
-    .isIn(['vodafone_cash', 'orange_cash', 'etisalat_cash', 'bank_transfer', 'cash'])
+    .isIn(['vodafone_cash', 'orange_cash', 'etisalat_cash', 'instapay', 'wallet', 'bank_transfer', 'cash'])
     .withMessage('VAL_INVALID_PAYMENT_METHOD'),
+  body('paymentSenderNumber').optional().trim(),
+  body('paymentSenderInstaPay').optional().trim(),
   body('paymentNotes').optional().trim(),
   body('passengers').optional(),
 ];

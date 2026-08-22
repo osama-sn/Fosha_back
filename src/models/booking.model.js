@@ -82,7 +82,7 @@ const bookingSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['vodafone_cash', 'orange_cash', 'etisalat_cash', 'bank_transfer', 'cash'],
+      enum: ['vodafone_cash', 'orange_cash', 'etisalat_cash', 'instapay', 'wallet', 'bank_transfer', 'cash'],
       default: 'cash',
       index: true,
     },
@@ -95,6 +95,16 @@ const bookingSchema = new mongoose.Schema(
     paymentReceiptImage: {
       type: String,
       default: '',
+    },
+    paymentSenderNumber: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    paymentSenderInstaPay: {
+      type: String,
+      default: '',
+      trim: true,
     },
     paymentNotes: {
       type: String,

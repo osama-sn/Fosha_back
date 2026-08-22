@@ -475,8 +475,10 @@ Trip Details ➔ Pick Date ➔ Select Seats ➔ Enter Traveler Data ➔ Select P
   "numberOfSeats": 2,
   "pickupPoint": "ميدان عبد المنعم رياض - التحرير",
   "pickupTime": "05:00 AM",
-  "paymentMethod": "vodafone_cash",
-  "paymentNotes": "تم التحويل من رقم 01099887766",
+  "paymentMethod": "instapay",
+  "paymentSenderInstaPay": "myaccount@instapay",
+  "paymentSenderNumber": "01099887766",
+  "paymentNotes": "تم التحويل من حساب انستا باي الخاص بي",
   "notes": "يرجى توفير مقاعد متجورة بأول الأوتوبيس",
   "couponCode": "SUMMER2026",
   "passengers": [
@@ -499,11 +501,17 @@ Trip Details ➔ Pick Date ➔ Select Seats ➔ Enter Traveler Data ➔ Select P
 ```
 
 #### القيم المتاحة لـ `paymentMethod`:
+- `instapay` (انستا باي InstaPay)
+- `wallet` (محفظة إلكترونية عامة)
 - `vodafone_cash` (فودافون كاش)
 - `orange_cash` (أورانج كاش)
 - `etisalat_cash` (اتصالات كاش)
 - `bank_transfer` (تحويل بنكي)
 - `cash` (دفع كاش / عند الوصول)
+
+#### حقول بيانات المحول الإضافية (اختيارية):
+- `paymentSenderNumber`: رقم المحمول المحول منه (في حالة المحافظ / الكاش)
+- `paymentSenderInstaPay`: حساب/معرف انستا باي المحول منه (في حالة انستا باي)
 
 #### Response (201 Created):
 ```json
@@ -552,7 +560,9 @@ Trip Details ➔ Pick Date ➔ Select Seats ➔ Enter Traveler Data ➔ Select P
 
 #### Form Fields:
 - `receiptImage`: (File - صورة شاشة الإيصال أو التحويل)
-- `paymentMethod`: (String - اختياري للتحديث)
+- `paymentMethod`: (String - اختياري للتحديث: `instapay`, `wallet`, `vodafone_cash`, `orange_cash`, `etisalat_cash`, `bank_transfer`, `cash`)
+- `paymentSenderNumber`: (String - رقم الموبايل اللي اتدفع منه)
+- `paymentSenderInstaPay`: (String - حساب الانستا باي اللي اتدفع منه)
 - `paymentNotes`: (String - ملاحظات التحويل رقم الحساب/العملية)
 
 #### Response (200 OK):
