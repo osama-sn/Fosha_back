@@ -464,3 +464,44 @@ socket.on("chat_updated", (data) => {
 * **إنشاء كوبون خصم للرحلات**: `POST /api/v1/coupons`
 
 ---
+
+## 💳 13. إدارة حسابات الدفع للمحافظ و InstaPay (Company Payment Accounts)
+
+تستطيع الشركة إضافة أكثر من رقم محفظة إلكترونية أو حساب InstaPay مع إمكانية تفعيل أو إيقاف أي حساب بسهولة.
+
+### 13.1) عرض قائمة حسابات الدفع للشركة
+* **الرابط**: `GET /api/v1/companies/:companyId/payment-accounts`
+* **Auth**: ✅ مطلوب لأدمن الشركة (يسترجع جميع الحسابات المفعلة والمعطلة).
+
+### 13.2) إضافة حساب دفع جديد (Add Payment Account)
+* **الرابط**: `POST /api/v1/companies/:companyId/payment-accounts`
+* **Body**:
+```json
+{
+  "provider": "instapay",
+  "title": "حساب انستا باي الرئيسي",
+  "handle": "company@instapay",
+  "number": "01012345678",
+  "instructions": "برجاء كتابة اسمك في الملاحظات عند التحويل",
+  "isActive": true
+}
+```
+* **أنواع `provider` المتاحة**: `instapay`, `wallet`, `vodafone_cash`, `orange_cash`, `etisalat_cash`, `bank_transfer`, `cash`
+
+### 13.3) تعديل بيانات حساب دفع (Update Payment Account)
+* **الرابط**: `PATCH /api/v1/companies/:companyId/payment-accounts/:accountId`
+* **Body**: (أي حقول مراد تعديلها)
+```json
+{
+  "title": "حساب انستا باي المحدث",
+  "handle": "newcompany@instapay"
+}
+```
+
+### 13.4) تفعيل / إيقاف حساب دفع (Toggle Active Status)
+* **الرابط**: `PATCH /api/v1/companies/:companyId/payment-accounts/:accountId/toggle`
+* **الوصف**: يقوم بتبديل حالة الحساب تلقائياً بين مفعل (`isActive: true`) ومعطل (`isActive: false`).
+
+### 13.5) حذف حساب دفع (Delete Payment Account)
+* **الرابط**: `DELETE /api/v1/companies/:companyId/payment-accounts/:accountId`
+

@@ -50,4 +50,39 @@ router.put(
   companyController.updateCompany
 );
 
+// Company Payment Accounts Routes
+router.get(
+  '/:id/payment-accounts',
+  optionalProtect,
+  companyController.getCompanyPaymentAccounts
+);
+
+router.post(
+  '/:id/payment-accounts',
+  protect,
+  authorize('super_admin', 'admin', 'company_admin'),
+  companyController.addCompanyPaymentAccount
+);
+
+router.patch(
+  '/:id/payment-accounts/:accountId',
+  protect,
+  authorize('super_admin', 'admin', 'company_admin'),
+  companyController.updateCompanyPaymentAccount
+);
+
+router.patch(
+  '/:id/payment-accounts/:accountId/toggle',
+  protect,
+  authorize('super_admin', 'admin', 'company_admin'),
+  companyController.toggleCompanyPaymentAccount
+);
+
+router.delete(
+  '/:id/payment-accounts/:accountId',
+  protect,
+  authorize('super_admin', 'admin', 'company_admin'),
+  companyController.deleteCompanyPaymentAccount
+);
+
 module.exports = router;

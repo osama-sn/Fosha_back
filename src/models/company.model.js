@@ -1,5 +1,24 @@
 const mongoose = require('mongoose');
 
+const paymentAccountSchema = new mongoose.Schema(
+  {
+    provider: {
+      type: String,
+      enum: ['vodafone_cash', 'orange_cash', 'etisalat_cash', 'wallet', 'instapay', 'bank_transfer', 'cash'],
+      required: true,
+    },
+    title: { type: String, default: '', trim: true },
+    number: { type: String, default: '', trim: true },
+    handle: { type: String, default: '', trim: true },
+    accountHolder: { type: String, default: '', trim: true },
+    bankName: { type: String, default: '', trim: true },
+    iban: { type: String, default: '', trim: true },
+    instructions: { type: String, default: '', trim: true },
+    isActive: { type: Boolean, default: true, index: true },
+  },
+  { timestamps: true }
+);
+
 const companySchema = new mongoose.Schema(
   {
     name: {
@@ -78,6 +97,7 @@ const companySchema = new mongoose.Schema(
         instructions: { type: String, default: '' },
       },
     },
+    paymentAccounts: [paymentAccountSchema],
     governorate: {
       type: String,
       default: '',

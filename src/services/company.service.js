@@ -378,6 +378,149 @@ class CompanyService {
       },
     };
   }
+
+  /**
+   * Helper to verify if user has permission to manage company
+   */
+  _checkCompanyPermission(company, user) {
+    const isSuperAdmin = user && ['super_admin', 'admin'].includes(user.role);
+    const isOwner = user && company.owner.toString() === user._id.toString();
+    const isCompanyAdminOfThisCompany = user && user.role === 'company_admin' && (
+      (user.company && (user.company._id ? user.company._id.toString() : user.company.toString())) === company._id.toString()
+    );
+
+    if (!isSuperAdmin && !isOwner && !isCompanyAdminOfThisCompany) {
+      throw new ApiError(403, 'FORBIDDEN_NOT_COMPANY_OWNER');
+    }
+  }
+
+  /**
+   * Get payment accounts for a company
+   */
+  async getPaymentAccounts(companyId, user = null) {
+    const company = await Company.findById(companyId);
+    if (!company) {
+      throw new ApiError(404, 'COMPANY_NOT_FOUND');
+    }
+
+    const isPrivileged = user && (
+      ['super_admin', 'admin'].includes(user.role) ||
+      company.owner.toString() === user._id.toString() ||
+      (user.role === 'company_admin' && user.company && (user.company._id ? user.company._id.toString() : user.company.toString()) === company._id.toString())
+    );
+
+    if (!isPrivileged) {
+      return (company.paymentAccounts || []).filter((acc) => acc.isActive);
+    }
+
+    return company.paymentAccounts || [];
+  }
+
+  /**
+   * Add a payment account for a company
+   */
+  async addPaymentAccount(companyId, user, payload) {
+    const company = await Company.findById(companyId);
+    if (!company) {
+      throw new ApiError(404, 'COMPANY_NOT_FOUND');
+    }
+
+    this._checkCompanyPermission(company, user);
+
+    const { provider, title, number, handle, accountHolder, bankName, iban, instructions, isActive } = payload;
+
+    if (!provider) {
+      throw new ApiError(400, 'PROVIDER_REQUIRED');
+    }
+
+    const newAccount = {
+      provider,
+      title: title || '',
+      number: number || '',
+      handle: handle || '',
+      accountHolder: accountHolder || '',
+      bankName: bankName || '',
+      iban: iban || '',
+      instructions: instructions || '',
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
+    };
+
+    company.paymentAccounts.push(newAccount);
+    await company.save();
+
+    return company.paymentAccounts;
+  }
+
+  /**
+   * Update an existing payment account
+   */
+  async updatePaymentAccount(companyId, accountId, user, payload) {
+    const company = await Company.findById(companyId);
+    if (!company) {
+      throw new ApiError(404, 'COMPANY_NOT_FOUND');
+    }
+
+    this._checkCompanyPermission(company, user);
+
+    const account = company.paymentAccounts.id(accountId);
+    if (!account) {
+      throw new ApiError(404, 'PAYMENT_ACCOUNT_NOT_FOUND');
+    }
+
+    const allowedFields = ['provider', 'title', 'number', 'handle', 'accountHolder', 'bankName', 'iban', 'instructions', 'isActive'];
+    allowedFields.forEach((field) => {
+      if (payload[field] !== undefined) {
+        account[field] = payload[field];
+      }
+    });
+
+    await company.save();
+    return account;
+  }
+
+  /**
+   * Toggle isActive status of a payment account
+   */
+  async togglePaymentAccount(companyId, accountId, user) {
+    const company = await Company.findById(companyId);
+    if (!company) {
+      throw new ApiError(404, 'COMPANY_NOT_FOUND');
+    }
+
+    this._checkCompanyPermission(company, user);
+
+    const account = company.paymentAccounts.id(accountId);
+    if (!account) {
+      throw new ApiError(404, 'PAYMENT_ACCOUNT_NOT_FOUND');
+    }
+
+    account.isActive = !account.isActive;
+    await company.save();
+
+    return account;
+  }
+
+  /**
+   * Delete a payment account
+   */
+  async deletePaymentAccount(companyId, accountId, user) {
+    const company = await Company.findById(companyId);
+    if (!company) {
+      throw new ApiError(404, 'COMPANY_NOT_FOUND');
+    }
+
+    this._checkCompanyPermission(company, user);
+
+    const accountIndex = company.paymentAccounts.findIndex((acc) => acc._id.toString() === accountId.toString());
+    if (accountIndex === -1) {
+      throw new ApiError(404, 'PAYMENT_ACCOUNT_NOT_FOUND');
+    }
+
+    company.paymentAccounts.splice(accountIndex, 1);
+    await company.save();
+
+    return true;
+  }
 }
 
 module.exports = new CompanyService();

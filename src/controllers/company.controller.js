@@ -55,6 +55,54 @@ const getCompanyReviews = AsyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'OPERATION_SUCCESS', result, req.lang));
 });
 
+const getCompanyPaymentAccounts = AsyncHandler(async (req, res) => {
+  const accounts = await companyService.getPaymentAccounts(req.params.id, req.user);
+  res
+    .status(200)
+    .json(new ApiResponse(200, 'PAYMENT_ACCOUNTS_FETCHED', accounts, req.lang));
+});
+
+const addCompanyPaymentAccount = AsyncHandler(async (req, res) => {
+  const accounts = await companyService.addPaymentAccount(req.params.id, req.user, req.body);
+  res
+    .status(201)
+    .json(new ApiResponse(201, 'PAYMENT_ACCOUNT_ADDED', accounts, req.lang));
+});
+
+const updateCompanyPaymentAccount = AsyncHandler(async (req, res) => {
+  const account = await companyService.updatePaymentAccount(
+    req.params.id,
+    req.params.accountId,
+    req.user,
+    req.body
+  );
+  res
+    .status(200)
+    .json(new ApiResponse(200, 'PAYMENT_ACCOUNT_UPDATED', account, req.lang));
+});
+
+const toggleCompanyPaymentAccount = AsyncHandler(async (req, res) => {
+  const account = await companyService.togglePaymentAccount(
+    req.params.id,
+    req.params.accountId,
+    req.user
+  );
+  res
+    .status(200)
+    .json(new ApiResponse(200, 'PAYMENT_ACCOUNT_TOGGLED', account, req.lang));
+});
+
+const deleteCompanyPaymentAccount = AsyncHandler(async (req, res) => {
+  await companyService.deleteCompanyPaymentAccount(
+    req.params.id,
+    req.params.accountId,
+    req.user
+  );
+  res
+    .status(200)
+    .json(new ApiResponse(200, 'PAYMENT_ACCOUNT_DELETED', {}, req.lang));
+});
+
 module.exports = {
   createCompany,
   getCompanies,
@@ -63,4 +111,9 @@ module.exports = {
   deleteCompany,
   addCompanyReview,
   getCompanyReviews,
+  getCompanyPaymentAccounts,
+  addCompanyPaymentAccount,
+  updateCompanyPaymentAccount,
+  toggleCompanyPaymentAccount,
+  deleteCompanyPaymentAccount,
 };
