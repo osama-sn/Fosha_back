@@ -14,12 +14,46 @@ class ChatService {
       throw new ApiError(400, 'COMPANY_ID_REQUIRED');
     }
 
-    let filter = { user: userId, company: companyId };
-    if (tripId) filter.trip = tripId;
+    // Find all existing chats between this (user, company) pair
+    const existingChats = await Chat.find({ user: userId, company: companyId }).sort({ createdAt: 1 });
 
-    let chat = await Chat.findOne(filter);
+    let chat = null;
 
-    if (!chat) {
+    if (existingChats.length > 0) {
+      // Pick the primary (first created) chat thread
+      chat = existingChats[0];
+
+      // If duplicate chats exist from before, merge them into the primary chat thread
+      if (existingChats.length > 1) {
+        const duplicateChatIds = existingChats.slice(1).map((c) => c._id);
+
+        // Move all messages from duplicate chats to primary chat
+        await Message.updateMany({ chat: { $in: duplicateChatIds } }, { chat: chat._id });
+
+        // Delete duplicate chat rooms
+        await Chat.deleteMany({ _id: { $in: duplicateChatIds } });
+      }
+
+      // Update latest trip and booking context if provided
+      let needsSave = false;
+      if (tripId && (chat.trip ? chat.trip.toString() : null) !== tripId.toString()) {
+        chat.trip = tripId;
+        needsSave = true;
+      }
+      if (bookingId && (chat.booking ? chat.booking.toString() : null) !== bookingId.toString()) {
+        chat.booking = bookingId;
+        needsSave = true;
+      }
+      if (type && chat.type !== type) {
+        chat.type = type;
+        needsSave = true;
+      }
+
+      if (needsSave) {
+        await chat.save();
+      }
+    } else {
+      // Create single unified chat thread
       chat = await Chat.create({
         type,
         user: userId,

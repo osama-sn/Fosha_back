@@ -54,7 +54,7 @@ const chatSchema = new mongoose.Schema(
   }
 );
 
-chatSchema.index({ user: 1, company: 1, trip: 1 }, { unique: true, sparse: true });
+chatSchema.index({ user: 1, company: 1 }, { unique: true });
 
 const Chat = mongoose.model('Chat', chatSchema);
 
